@@ -5,7 +5,6 @@ project(condy-bench LANGUAGES CXX)
 add_library(asio INTERFACE)
 target_include_directories(asio INTERFACE third_party/asio/include)
 
-set(LINK_LIBURING OFF)
 add_subdirectory(third_party/condy)
 
 set(CMAKE_CXX_STANDARD 20)
