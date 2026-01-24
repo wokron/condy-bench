@@ -9,5 +9,5 @@ bench(channel condy condy uring)
 bench(spawn asio asio)
 bench(spawn condy condy uring)
 
-# bench(semphore condy condy uring)
-# bench(semphore multi_thread)
+bench(post asio asio)
+bench(post condy condy uring)
