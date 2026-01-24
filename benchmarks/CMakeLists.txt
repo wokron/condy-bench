@@ -10,3 +10,6 @@ endmacro()
 
 asio_bench(channel)
 condy_bench(channel)
+
+asio_bench(spawn)
+condy_bench(spawn)
