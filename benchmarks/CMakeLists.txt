@@ -15,3 +15,7 @@ bench(post condy condy uring)
 bench(file_read asio asio uring)
 bench(file_read condy condy uring)
 bench(file_read sync)
+
+bench(file_write asio asio uring)
+bench(file_write condy condy uring)
+bench(file_write sync)
