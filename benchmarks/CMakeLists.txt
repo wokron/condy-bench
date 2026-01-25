@@ -19,3 +19,7 @@ bench(file_read sync)
 bench(file_write asio asio uring)
 bench(file_write condy condy uring)
 bench(file_write sync)
+
+bench(file_random_read asio asio uring)
+bench(file_random_read condy condy uring)
+bench(file_random_read sync)
