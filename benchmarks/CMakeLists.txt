@@ -27,3 +27,7 @@ bench(file_random_read sync)
 bench(file_random_write condy condy uring)
 bench(file_random_write asio asio uring)
 bench(file_random_write sync)
+
+bench(echo_server condy condy uring)
+bench(echo_server asio asio)
+bench(echo_server epoll)
