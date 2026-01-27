@@ -5,6 +5,7 @@
 #include <vector>
 
 static size_t block_size = 1024 * 1024; // 1MB
+static bool direct_io = false;
 
 void do_reads(int file, size_t &offset, size_t total_size) {
     std::vector<char> buffer(block_size);
@@ -18,21 +19,25 @@ void do_reads(int file, size_t &offset, size_t total_size) {
 
 void usage(const char *prog_name) {
     std::printf(
-        "Usage: %s [-h] [-b block_size] <filename>\n"
+        "Usage: %s [-hd] [-b block_size] <filename>\n"
         "  -h              Show this help message\n"
-        "  -b block_size   Block size of each read operation in bytes\n",
+        "  -b block_size   Block size of each read operation in bytes\n"
+        "  -d              Use direct I/O\n",
         prog_name);
 }
 
 int main(int argc, char *argv[]) {
     int opt;
-    while ((opt = getopt(argc, argv, "hb:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:t:d")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
             return 0;
         case 'b':
             block_size = std::stoul(optarg);
+            break;
+        case 'd':
+            direct_io = true;
             break;
         default:
             usage(argv[0]);
@@ -47,7 +52,11 @@ int main(int argc, char *argv[]) {
 
     std::string filename = argv[optind];
 
-    int file = open(filename.c_str(), O_RDONLY);
+    int oflags = O_RDONLY;
+    if (direct_io) {
+        oflags |= O_DIRECT;
+    }
+    int file = open(filename.c_str(), oflags);
 
     size_t file_size = lseek(file, 0, SEEK_END);
     lseek(file, 0, SEEK_SET);
