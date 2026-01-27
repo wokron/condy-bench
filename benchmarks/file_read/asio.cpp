@@ -10,7 +10,7 @@
 static size_t block_size = 1024 * 1024; // 1MB
 static size_t num_tasks = 32;
 
-asio::awaitable<void> do_writes(asio::random_access_file &file, size_t &offset,
+asio::awaitable<void> do_reads(asio::random_access_file &file, size_t &offset,
                                size_t total_size) {
     std::vector<char> buffer(block_size);
     while (offset < total_size) {
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     size_t offset = 0;
 
     for (size_t i = 0; i < num_tasks; ++i) {
-        asio::co_spawn(ctx, do_writes(f, offset, file_size), asio::detached);
+        asio::co_spawn(ctx, do_reads(f, offset, file_size), asio::detached);
     }
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -78,9 +78,9 @@ int main(int argc, char *argv[]) {
     double throughput = static_cast<double>(file_size) / elapsed.count() /
                         (1024 * 1024); // MB/s
     std::printf(
-        "time:%ldms\n",
+        "time_ms:%ld\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-    std::printf("throughput:%.2f MB/s\n", throughput);
+    std::printf("throughput_mbps:%.2f\n", throughput);
 
     return 0;
 }

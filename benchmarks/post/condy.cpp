@@ -43,5 +43,5 @@ int main(int argc, char *argv[]) {
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count();
-    std::printf("time:%ldms\n", duration);
+    std::printf("time_ms:%ld\n", duration);
 }

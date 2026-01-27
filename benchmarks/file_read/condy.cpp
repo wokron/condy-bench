@@ -70,9 +70,9 @@ int main(int argc, char *argv[]) {
     double throughput = static_cast<double>(file_size) / elapsed.count() /
                         (1024 * 1024); // MB/s
     std::printf(
-        "time:%ldms\n",
+        "time_ms:%ld\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-    std::printf("throughput:%.2f MB/s\n", throughput);
+    std::printf("throughput_mbps:%.2f\n", throughput);
 
     return 0;
 }
