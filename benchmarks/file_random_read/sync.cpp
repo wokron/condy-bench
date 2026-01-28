@@ -9,6 +9,7 @@
 
 static size_t block_size = 1024 * 1024; // 1MB
 static size_t seed = 42;
+static bool direct_io = false;
 
 void do_reads(int file, size_t &index, size_t offsets[], size_t total_blocks) {
     std::vector<char> buffer(block_size);
@@ -20,16 +21,17 @@ void do_reads(int file, size_t &index, size_t offsets[], size_t total_blocks) {
 }
 
 void usage(const char *prog_name) {
-    std::printf("Usage: %s [-h] [-b block_size] [-s seed] <filename>\n"
+    std::printf("Usage: %s [-hd] [-b block_size] [-s seed] <filename>\n"
                 "  -h              Show this help message\n"
                 "  -b block_size   Block size of each read operation in bytes\n"
-                "  -s seed         Seed for random number generator\n",
+                "  -s seed         Seed for random number generator\n"
+                "  -d              Use direct I/O\n",
                 prog_name);
 }
 
 int main(int argc, char *argv[]) {
     int opt;
-    while ((opt = getopt(argc, argv, "hb:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:s:d")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -39,6 +41,9 @@ int main(int argc, char *argv[]) {
             break;
         case 's':
             seed = std::stoul(optarg);
+            break;
+        case 'd':
+            direct_io = true;
             break;
         default:
             usage(argv[0]);
@@ -53,7 +58,11 @@ int main(int argc, char *argv[]) {
 
     std::string filename = argv[optind];
 
-    int file = open(filename.c_str(), O_RDONLY);
+    int oflags = O_RDONLY;
+    if (direct_io) {
+        oflags |= O_DIRECT;
+    }
+    int file = open(filename.c_str(), oflags);
 
     size_t file_size = lseek(file, 0, SEEK_END);
     lseek(file, 0, SEEK_SET);
