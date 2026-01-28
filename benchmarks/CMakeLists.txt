@@ -23,3 +23,5 @@ bench(file_random_read sync)
 bench(echo_server condy condy uring)
 bench(echo_server asio asio)
 bench(echo_server epoll)
+
+add_executable(echo_stress echo_stress.cpp)
