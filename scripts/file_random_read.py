@@ -77,7 +77,7 @@ def main():
             num_tasks=default_num_tasks,
         )
         output = process_output(output)
-        condy_bs_results.append(float(output["time_ms"]))
+        condy_bs_results.append(float(output["throughput_mbps"]))
     for nt in num_tasks_list:
         output = run_file_random_read(
             file_random_read_condy,
@@ -86,7 +86,7 @@ def main():
             num_tasks=nt,
         )
         output = process_output(output)
-        condy_nt_results.append(float(output["time_ms"]))
+        condy_nt_results.append(float(output["throughput_mbps"]))
 
     condy_direct_bs_results = []
     condy_direct_nt_results = []
@@ -100,7 +100,7 @@ def main():
             direct_io=True,
         )
         output = process_output(output)
-        condy_direct_bs_results.append(float(output["time_ms"]))
+        condy_direct_bs_results.append(float(output["throughput_mbps"]))
     for nt in num_tasks_list:
         output = run_file_random_read(
             file_random_read_condy,
@@ -110,7 +110,7 @@ def main():
             direct_io=True,
         )
         output = process_output(output)
-        condy_direct_nt_results.append(float(output["time_ms"]))
+        condy_direct_nt_results.append(float(output["throughput_mbps"]))
 
     asio_bs_results = []
     asio_nt_results = []
@@ -120,26 +120,26 @@ def main():
             file_random_read_asio, str(test_file), bs, default_num_tasks
         )
         output = process_output(output)
-        asio_bs_results.append(float(output["time_ms"]))
+        asio_bs_results.append(float(output["throughput_mbps"]))
     for nt in num_tasks_list:
         output = run_file_random_read(
             file_random_read_asio, str(test_file), default_block_size, nt
         )
         output = process_output(output)
-        asio_nt_results.append(float(output["time_ms"]))
+        asio_nt_results.append(float(output["throughput_mbps"]))
 
     sync_bs_results = []
 
     for bs in block_sizes:
         output = run_file_random_read(file_random_read_sync, str(test_file), bs, None)
         output = process_output(output)
-        sync_bs_results.append(float(output["time_ms"]))
+        sync_bs_results.append(float(output["throughput_mbps"]))
 
     output = run_file_random_read(
         file_random_read_sync, str(test_file), default_block_size, None
     )
     output = process_output(output)
-    sync_nt_results = [float(output["time_ms"])] * len(num_tasks_list)
+    sync_nt_results = [float(output["throughput_mbps"])] * len(num_tasks_list)
 
     sync_direct_bs_results = []
 
@@ -148,13 +148,13 @@ def main():
             file_random_read_sync, str(test_file), bs, None, direct_io=True
         )
         output = process_output(output)
-        sync_direct_bs_results.append(float(output["time_ms"]))
+        sync_direct_bs_results.append(float(output["throughput_mbps"]))
 
     output = run_file_random_read(
         file_random_read_sync, str(test_file), default_block_size, None, direct_io=True
     )
     output = process_output(output)
-    sync_direct_nt_results = [float(output["time_ms"])] * len(num_tasks_list)
+    sync_direct_nt_results = [float(output["throughput_mbps"])] * len(num_tasks_list)
 
     # block_size plots
     fig, ax = plt.subplots()
@@ -164,8 +164,8 @@ def main():
     ax.plot(block_sizes, sync_bs_results, marker="o", label="Sync")
     ax.plot(block_sizes, sync_direct_bs_results, marker="o", label="Sync Direct I/O")
     ax.set_xlabel("Block Size (bytes)")
-    ax.set_ylabel("Time (ms)")
-    ax.set_title("Random Read Benchmark: Block Size vs Time")
+    ax.set_ylabel("Throughput (MB/s)")
+    ax.set_title("Random Read Benchmark: Block Size vs Throughput")
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
     ax.legend()
@@ -183,8 +183,8 @@ def main():
     ax.plot(num_tasks_list, sync_nt_results, marker="o", label="Sync")
     ax.plot(num_tasks_list, sync_direct_nt_results, marker="o", label="Sync Direct I/O")
     ax.set_xlabel("Number of Tasks")
-    ax.set_ylabel("Time (ms)")
-    ax.set_title("Random Read Benchmark: Number of Tasks vs Time")
+    ax.set_ylabel("Throughput (MB/s)")
+    ax.set_title("Random Read Benchmark: Number of Tasks vs Throughput")
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
     ax.legend()

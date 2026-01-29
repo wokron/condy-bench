@@ -113,13 +113,20 @@ def main():
         output = process_output(output)
         epoll_conn_results.append(float(output["resp_bytes_per_sec"]))
 
+    def bps_to_mbps(bps):
+        return bps / (1024 * 1024)
+
+    condy_conn_results = list(map(bps_to_mbps, condy_conn_results))
+    asio_conn_results = list(map(bps_to_mbps, asio_conn_results))
+    epoll_conn_results = list(map(bps_to_mbps, epoll_conn_results))
+
     # num_connections plot
     fig, ax = plt.subplots()
     ax.plot(num_connections, condy_conn_results, marker="o", label="Condy Echo Server")
     ax.plot(num_connections, asio_conn_results, marker="o", label="ASIO Echo Server")
     ax.plot(num_connections, epoll_conn_results, marker="o", label="Epoll Echo Server")
     ax.set_xlabel("Number of Connections")
-    ax.set_ylabel("Throughput (bytes/sec)")
+    ax.set_ylabel("Throughput (MB/s)")
     ax.set_title("Echo Server Throughput vs Number of Connections")
     ax.set_xscale("log", base=2)
     ax.legend()
