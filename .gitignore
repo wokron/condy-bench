@@ -53,6 +53,11 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
+# Python Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
 build/
 .cache/
 .vscode/
