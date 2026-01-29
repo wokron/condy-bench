@@ -65,7 +65,7 @@ void do_echo(std::atomic<bool> &running, Count &count) {
     int sockfd = do_connect(address, port);
     if (sockfd < 0) {
         std::perror("Connection failed");
-        exit(1);
+        exit(2);
     }
 
     while (true) {
@@ -79,7 +79,7 @@ void do_echo(std::atomic<bool> &running, Count &count) {
             if (n <= 0) [[unlikely]] {
                 std::perror("Send failed");
                 close(sockfd);
-                exit(1);
+                exit(3);
             }
             r += n;
             count.outbytes += n;
@@ -93,7 +93,7 @@ void do_echo(std::atomic<bool> &running, Count &count) {
         if (r <= 0) [[unlikely]] {
             std::perror("Receive failed");
             close(sockfd);
-            exit(1);
+            exit(4);
         }
         count.inbytes += r;
     }

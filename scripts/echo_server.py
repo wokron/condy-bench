@@ -1,0 +1,132 @@
+import subprocess
+from matplotlib import pyplot as plt
+from pathlib import Path
+import os
+
+benchmark_dir = Path("./build/benchmarks/")
+
+echo_server_condy = benchmark_dir / "echo_server_condy"
+echo_server_asio = benchmark_dir / "echo_server_asio"
+echo_server_epoll = benchmark_dir / "echo_server_epoll"
+
+echo_stress = benchmark_dir / "echo_stress"
+
+fig_dir = Path("./results/figures/")
+fig_dir.mkdir(parents=True, exist_ok=True)
+
+
+next_port = 12345
+
+
+def run_echo_server(program, message_size, num_connections, duration):
+    global next_port
+    port = next_port
+    next_port += 1
+
+    args_server = [
+        "taskset",
+        "-c",
+        "0",
+        program,
+        "0.0.0.0",
+        str(port),
+    ]
+    print(args_server)
+    proc = subprocess.Popen(args_server)
+    try:
+        cpu_count = os.cpu_count()
+        cpus = ",".join(str(i) for i in range(1, cpu_count))
+        args_stress = [
+            "taskset",
+            "-c",
+            cpus,
+            echo_stress,
+            "-a",
+            "127.0.0.1",
+            "-p",
+            str(port),
+            "-l",
+            str(message_size),
+            "-c",
+            str(num_connections),
+            "-t",
+            str(duration),
+        ]
+        print(args_stress)
+        result = subprocess.run(args_stress, capture_output=True, text=True, check=True)
+        return result.stdout
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
+def process_output(output: str):
+    result = {}
+    lines = output.strip().split("\n")
+    for line in lines:
+        split = line.split(":", maxsplit=1)
+        key = split[0].strip()
+        value = split[1].strip()
+        result[key] = value
+    return result
+
+
+def main():
+    default_message_size = 1024  # 1 KB
+    default_duration = 10  # seconds
+
+    num_connections = [4, 8, 16, 32, 64]
+
+    condy_conn_results = []
+
+    for conn in num_connections:
+        output = run_echo_server(
+            echo_server_condy,
+            message_size=default_message_size,
+            num_connections=conn,
+            duration=default_duration,
+        )
+        output = process_output(output)
+        condy_conn_results.append(float(output["resp_bytes_per_sec"]))
+
+    asio_conn_results = []
+
+    for conn in num_connections:
+        output = run_echo_server(
+            echo_server_asio,
+            message_size=default_message_size,
+            num_connections=conn,
+            duration=default_duration,
+        )
+        output = process_output(output)
+        asio_conn_results.append(float(output["resp_bytes_per_sec"]))
+
+    epoll_conn_results = []
+
+    for conn in num_connections:
+        output = run_echo_server(
+            echo_server_epoll,
+            message_size=default_message_size,
+            num_connections=conn,
+            duration=default_duration,
+        )
+        output = process_output(output)
+        epoll_conn_results.append(float(output["resp_bytes_per_sec"]))
+
+    # num_connections plot
+    fig, ax = plt.subplots()
+    ax.plot(num_connections, condy_conn_results, marker="o", label="Condy Echo Server")
+    ax.plot(num_connections, asio_conn_results, marker="o", label="ASIO Echo Server")
+    ax.plot(num_connections, epoll_conn_results, marker="o", label="Epoll Echo Server")
+    ax.set_xlabel("Number of Connections")
+    ax.set_ylabel("Throughput (bytes/sec)")
+    ax.set_title("Echo Server Throughput vs Number of Connections")
+    ax.set_xscale("log", base=2)
+    ax.legend()
+    ax.grid(True)
+    fig.savefig(fig_dir / "echo_server_num_connections.png")
+    plt.close(fig)
+
+
+if __name__ == "__main__":
+    main()
