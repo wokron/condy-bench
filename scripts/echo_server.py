@@ -3,18 +3,14 @@ import time
 from matplotlib import pyplot as plt
 from pathlib import Path
 import os
+from utils import process_output, benchmark_dir, fig_dir
 
-benchmark_dir = Path("./build/benchmarks/")
 
 echo_server_condy = benchmark_dir / "echo_server_condy"
 echo_server_asio = benchmark_dir / "echo_server_asio"
 echo_server_epoll = benchmark_dir / "echo_server_epoll"
 
 echo_stress = benchmark_dir / "echo_stress"
-
-fig_dir = Path("./results/figures/")
-fig_dir.mkdir(parents=True, exist_ok=True)
-
 
 next_port = 12345
 
@@ -66,17 +62,6 @@ def run_echo_server(program, message_size, num_connections, duration, fixed_fd=F
     finally:
         proc.terminate()
         proc.wait()
-
-
-def process_output(output: str):
-    result = {}
-    lines = output.strip().split("\n")
-    for line in lines:
-        split = line.split(":", maxsplit=1)
-        key = split[0].strip()
-        value = split[1].strip()
-        result[key] = value
-    return result
 
 
 def run():

@@ -1,15 +1,12 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
+from utils import process_output, benchmark_dir, fig_dir
 
-benchmark_dir = Path("./build/benchmarks/")
 
 file_read_condy = benchmark_dir / "file_read_condy"
 file_read_asio = benchmark_dir / "file_read_asio"
 file_read_sync = benchmark_dir / "file_read_sync"
-
-fig_dir = Path("./results/figures/")
-fig_dir.mkdir(parents=True, exist_ok=True)
 
 
 def run_file_read(program, file, block_size, num_tasks, direct_io=False, fixed=False):
@@ -33,17 +30,6 @@ def run_file_read(program, file, block_size, num_tasks, direct_io=False, fixed=F
     print(args)
     result = subprocess.run(args, capture_output=True, text=True)
     return result.stdout
-
-
-def process_output(output: str):
-    result = {}
-    lines = output.strip().split("\n")
-    for line in lines:
-        split = line.split(":", maxsplit=1)
-        key = split[0].strip()
-        value = split[1].strip()
-        result[key] = value
-    return result
 
 
 def generate_test_file(file_path: Path, size_in_mb: int):

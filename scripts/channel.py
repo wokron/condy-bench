@@ -1,14 +1,10 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-
-benchmark_dir = Path("./build/benchmarks/")
+from utils import process_output, benchmark_dir, fig_dir
 
 channel_condy = benchmark_dir / "channel_condy"
 channel_asio = benchmark_dir / "channel_asio"
-
-fig_dir = Path("./results/figures/")
-fig_dir.mkdir(parents=True, exist_ok=True)
 
 
 def run_channel(program, buffer_size, num_messages, task_pair):
@@ -24,17 +20,6 @@ def run_channel(program, buffer_size, num_messages, task_pair):
     print(args)
     result = subprocess.run(args, capture_output=True, text=True)
     return result.stdout
-
-
-def process_output(output: str):
-    result = {}
-    lines = output.strip().split("\n")
-    for line in lines:
-        split = line.split(":", maxsplit=1)
-        key = split[0].strip()
-        value = split[1].strip()
-        result[key] = value
-    return result
 
 
 def run():

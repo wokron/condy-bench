@@ -1,14 +1,11 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
+from utils import process_output, benchmark_dir, fig_dir
 
-benchmark_dir = Path("./build/benchmarks/")
 
 spawn_condy = benchmark_dir / "spawn_condy"
 spawn_asio = benchmark_dir / "spawn_asio"
-
-fig_dir = Path("./results/figures/")
-fig_dir.mkdir(parents=True, exist_ok=True)
 
 
 def run_spawn(program, num_tasks):
@@ -20,17 +17,6 @@ def run_spawn(program, num_tasks):
     print(args)
     result = subprocess.run(args, capture_output=True, text=True)
     return result.stdout
-
-
-def process_output(output: str):
-    result = {}
-    lines = output.strip().split("\n")
-    for line in lines:
-        split = line.split(":", maxsplit=1)
-        key = split[0].strip()
-        value = split[1].strip()
-        result[key] = value
-    return result
 
 
 def run():
