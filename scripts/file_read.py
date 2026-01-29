@@ -5,6 +5,7 @@ from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
 
 
 file_read_condy = benchmark_dir / "file_read_condy"
+file_read_aio = benchmark_dir / "file_read_aio"
 file_read_asio = benchmark_dir / "file_read_asio"
 file_read_sync = benchmark_dir / "file_read_sync"
 
@@ -107,6 +108,18 @@ def run():
         output = process_output(output)
         condy_fixed_nt_results.append(float(output["throughput_mbps"]))
 
+    aio_bs_results = []
+    aio_nt_results = []
+
+    for bs in block_sizes:
+        output = run_file_read(file_read_aio, str(test_file), bs, default_num_tasks)
+        output = process_output(output)
+        aio_bs_results.append(float(output["throughput_mbps"]))
+    for nt in num_tasks_list:
+        output = run_file_read(file_read_aio, str(test_file), default_block_size, nt)
+        output = process_output(output)
+        aio_nt_results.append(float(output["throughput_mbps"]))
+
     asio_bs_results = []
     asio_nt_results = []
 
@@ -150,6 +163,7 @@ def run():
     ax.plot(
         block_sizes, condy_fixed_bs_results, marker="o", label="Condy Fixed Fd & Buffer"
     )
+    ax.plot(block_sizes, aio_bs_results, marker="o", label="Aio")
     ax.plot(block_sizes, asio_bs_results, marker="o", label="Asio")
     ax.plot(block_sizes, sync_bs_results, marker="o", label="Sync")
     ax.plot(block_sizes, sync_direct_bs_results, marker="o", label="Sync Direct I/O")
@@ -176,6 +190,7 @@ def run():
         label="Condy Fixed Fd & Buffer",
     )
     ax.plot(num_tasks_list, asio_nt_results, marker="o", label="Asio")
+    ax.plot(num_tasks_list, aio_nt_results, marker="o", label="Aio")
     ax.plot(num_tasks_list, sync_nt_results, marker="o", label="Sync")
     ax.plot(num_tasks_list, sync_direct_nt_results, marker="o", label="Sync Direct I/O")
     ax.set_xlabel("Number of Tasks")
@@ -195,6 +210,7 @@ def run():
             "condy_throughput_mbps": condy_bs_results,
             "condy_direct_throughput_mbps": condy_direct_bs_results,
             "condy_fixed_throughput_mbps": condy_fixed_bs_results,
+            "aio_throughput_mbps": aio_bs_results,
             "asio_throughput_mbps": asio_bs_results,
             "sync_throughput_mbps": sync_bs_results,
             "sync_direct_throughput_mbps": sync_direct_bs_results,
@@ -209,6 +225,7 @@ def run():
             "condy_throughput_mbps": condy_nt_results,
             "condy_direct_throughput_mbps": condy_direct_nt_results,
             "condy_fixed_throughput_mbps": condy_fixed_nt_results,
+            "aio_throughput_mbps": aio_nt_results,
             "asio_throughput_mbps": asio_nt_results,
             "sync_throughput_mbps": sync_nt_results,
             "sync_direct_throughput_mbps": sync_direct_nt_results,

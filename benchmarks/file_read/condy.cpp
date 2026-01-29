@@ -79,6 +79,11 @@ int main(int argc, char *argv[]) {
     size_t total_buffer_size = block_size * num_tasks;
     void *data = mmap(nullptr, total_buffer_size, PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (data == MAP_FAILED) {
+        perror("mmap");
+        close(file);
+        return 1;
+    }
     char *total_buffer = static_cast<char *>(data);
 
     if (fixed) {

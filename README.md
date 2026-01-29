@@ -11,6 +11,13 @@ git clone --recurse-submodules https://github.com/wokron/condy-bench.git
 cd condy-bench
 ```
 
+Install `libaio`:
+
+```sh
+# For Debian/Ubuntu:
+sudo apt-get install libaio-dev
+```
+
 Build the benchmark programs:
 
 ```sh
