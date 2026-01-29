@@ -37,6 +37,7 @@ void usage(const char *prog_name) {
 int do_connect(const std::string &address, int port) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
+        std::perror("Failed to create socket");
         return -1;
     }
 
@@ -47,11 +48,13 @@ int do_connect(const std::string &address, int port) {
 
     if (inet_pton(AF_INET, address.c_str(), &serv_addr.sin_addr) <= 0) {
         close(sockfd);
+        std::perror("Invalid address");
         return -1;
     }
 
     if (connect(sockfd, (sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         close(sockfd);
+        std::perror("Connection failed");
         return -1;
     }
 
@@ -64,7 +67,6 @@ void do_echo(std::atomic<bool> &running, Count &count) {
 
     int sockfd = do_connect(address, port);
     if (sockfd < 0) {
-        std::perror("Connection failed");
         exit(2);
     }
 
