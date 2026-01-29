@@ -1,7 +1,7 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir
+from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
 
 channel_condy = benchmark_dir / "channel_condy"
 channel_asio = benchmark_dir / "channel_asio"
@@ -64,8 +64,8 @@ def run():
 
     # num_message plot
     fig, ax = plt.subplots()
-    ax.plot(num_messages, condy_nm_results, marker="o", label="condy")
-    ax.plot(num_messages, asio_nm_results, marker="o", label="asio")
+    ax.plot(num_messages, condy_nm_results, marker="o", label="Condy")
+    ax.plot(num_messages, asio_nm_results, marker="o", label="Asio")
     ax.set_title("Channel Benchmark - Varying Number of Messages")
     ax.set_xlabel("Number of Messages")
     ax.set_ylabel("Time (ms)")
@@ -77,8 +77,8 @@ def run():
 
     # task_pairs plot
     fig, ax = plt.subplots()
-    ax.plot(task_pairs, condy_tp_results, marker="o", label="condy")
-    ax.plot(task_pairs, asio_tp_results, marker="o", label="asio")
+    ax.plot(task_pairs, condy_tp_results, marker="o", label="Condy")
+    ax.plot(task_pairs, asio_tp_results, marker="o", label="Asio")
     ax.set_title("Channel Benchmark - Varying Number of Task Pairs")
     ax.set_xlabel("Number of Task Pairs")
     ax.set_ylabel("Time (ms)")
@@ -87,6 +87,26 @@ def run():
     ax.grid()
     fig.savefig(fig_dir / "channel_task_pairs.png")
     plt.close(fig)
+
+    csv_saver_nm = CSVSaver(
+        x_name="num_messages",
+        x_values=num_messages,
+        y_dict={
+            "condy_time_ms": condy_nm_results,
+            "asio_time_ms": asio_nm_results,
+        },
+    )
+    csv_saver_nm.save(data_dir / "channel_number_of_messages.csv")
+
+    csv_saver_tp = CSVSaver(
+        x_name="task_pairs",
+        x_values=task_pairs,
+        y_dict={
+            "condy_time_ms": condy_tp_results,
+            "asio_time_ms": asio_tp_results,
+        },
+    )
+    csv_saver_tp.save(data_dir / "channel_task_pairs.csv")
 
 
 if __name__ == "__main__":

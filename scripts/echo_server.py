@@ -3,7 +3,7 @@ import time
 from matplotlib import pyplot as plt
 from pathlib import Path
 import os
-from utils import process_output, benchmark_dir, fig_dir
+from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
 
 
 echo_server_condy = benchmark_dir / "echo_server_condy"
@@ -136,9 +136,9 @@ def run():
     fig, ax = plt.subplots()
     ax.plot(num_connections, condy_conn_results, marker="o", label="Condy")
     ax.plot(
-        num_connections, condy_fixed_conn_results, marker="o", label="Condy (fixed fd)"
+        num_connections, condy_fixed_conn_results, marker="o", label="Condy Fixed Fd"
     )
-    ax.plot(num_connections, asio_conn_results, marker="o", label="ASIO")
+    ax.plot(num_connections, asio_conn_results, marker="o", label="Asio")
     ax.plot(num_connections, epoll_conn_results, marker="o", label="Epoll")
     ax.set_xlabel("Number of Connections")
     ax.set_ylabel("Throughput (MB/s)")
@@ -148,6 +148,18 @@ def run():
     ax.grid(True)
     fig.savefig(fig_dir / "echo_server_num_connections.png")
     plt.close(fig)
+
+    csv_saver = CSVSaver(
+        x_name="num_connections",
+        x_values=num_connections,
+        y_dict={
+            "condy_mbps": condy_conn_results,
+            "condy_fixed_fd_mbps": condy_fixed_conn_results,
+            "asio_mbps": asio_conn_results,
+            "epoll_mbps": epoll_conn_results,
+        },
+    )
+    csv_saver.save(data_dir / "echo_server_num_connections.csv")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir
+from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
 
 
 file_read_condy = benchmark_dir / "file_read_condy"
@@ -187,6 +187,34 @@ def run():
     plt.grid()
     plt.savefig(fig_dir / "file_read_num_tasks.png")
     plt.close(fig)
+
+    csv_saver_bs = CSVSaver(
+        x_name="block_size_bytes",
+        x_values=block_sizes,
+        y_dict={
+            "condy_throughput_mbps": condy_bs_results,
+            "condy_direct_throughput_mbps": condy_direct_bs_results,
+            "condy_fixed_throughput_mbps": condy_fixed_bs_results,
+            "asio_throughput_mbps": asio_bs_results,
+            "sync_throughput_mbps": sync_bs_results,
+            "sync_direct_throughput_mbps": sync_direct_bs_results,
+        },
+    )
+    csv_saver_bs.save(data_dir / "file_read_block_size.csv")
+
+    csv_saver_nt = CSVSaver(
+        x_name="num_tasks",
+        x_values=num_tasks_list,
+        y_dict={
+            "condy_throughput_mbps": condy_nt_results,
+            "condy_direct_throughput_mbps": condy_direct_nt_results,
+            "condy_fixed_throughput_mbps": condy_fixed_nt_results,
+            "asio_throughput_mbps": asio_nt_results,
+            "sync_throughput_mbps": sync_nt_results,
+            "sync_direct_throughput_mbps": sync_direct_nt_results,
+        },
+    )
+    csv_saver_nt.save(data_dir / "file_read_num_tasks.csv")
 
 
 if __name__ == "__main__":

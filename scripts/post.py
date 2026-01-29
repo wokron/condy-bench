@@ -1,7 +1,7 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir
+from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
 
 
 post_condy = benchmark_dir / "post_condy"
@@ -47,6 +47,16 @@ def run():
     ax.grid()
     plt.savefig(fig_dir / "post_number_of_messages.png")
     plt.close(fig)
+
+    csv_saver = CSVSaver(
+        x_name="num_messages",
+        x_values=num_messages,
+        y_dict={
+            "condy_time_ms": condy_results,
+            "asio_time_ms": asio_results,
+        },
+    )
+    csv_saver.save(data_dir / "post_number_of_messages.csv")
 
 
 if __name__ == "__main__":

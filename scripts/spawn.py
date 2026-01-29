@@ -1,7 +1,7 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir
+from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
 
 
 spawn_condy = benchmark_dir / "spawn_condy"
@@ -48,6 +48,16 @@ def run():
     fig_path = fig_dir / "spawn_benchmark.png"
     plt.savefig(fig_path)
     plt.close(fig)
+
+    csv_saver = CSVSaver(
+        x_name="num_tasks",
+        x_values=num_tasks,
+        y_dict={
+            "condy_time_ms": condy_results,
+            "asio_time_ms": asio_results,
+        },
+    )
+    csv_saver.save(data_dir / "spawn_number_of_tasks.csv")
 
 
 if __name__ == "__main__":
