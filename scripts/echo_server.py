@@ -71,7 +71,7 @@ def process_output(output: str):
     return result
 
 
-def main():
+def run():
     default_message_size = 1024  # 1 KB
     default_duration = 10  # seconds
 
@@ -136,4 +136,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run()

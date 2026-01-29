@@ -37,7 +37,7 @@ def process_output(output: str):
     return result
 
 
-def main():
+def run():
     default_buffer_size = 1024
     default_num_messages = 1048576
     default_task_pair = 1
@@ -105,4 +105,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run()

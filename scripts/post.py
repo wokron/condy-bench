@@ -33,7 +33,7 @@ def process_output(output: str):
     return result
 
 
-def main():
+def run():
     num_messages = [524288, 1048576, 2097152, 4194304, 8388608]
 
     condy_results = []
@@ -64,4 +64,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run()

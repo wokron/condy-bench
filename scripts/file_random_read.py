@@ -49,7 +49,7 @@ def generate_test_file(file_path: Path, size_in_mb: int):
         f.write(b"\0" * size_in_mb * 1024 * 1024)
 
 
-def main():
+def run():
     test_file = Path("./test_file.bin")
     if not test_file.exists():
         generate_test_file(test_file, size_in_mb=8 * 1024)  # 8 GB test file
@@ -194,4 +194,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run()

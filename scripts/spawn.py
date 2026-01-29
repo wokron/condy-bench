@@ -33,7 +33,7 @@ def process_output(output: str):
     return result
 
 
-def main():
+def run():
     num_tasks = [131072, 262144, 524288, 1048576, 2097152, 4194304]
 
     condy_results = []
@@ -63,5 +63,6 @@ def main():
     plt.savefig(fig_path)
     plt.close(fig)
 
+
 if __name__ == "__main__":
-    main()
+    run()
