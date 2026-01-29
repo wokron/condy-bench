@@ -12,7 +12,7 @@ fig_dir = Path("./results/figures/")
 fig_dir.mkdir(parents=True, exist_ok=True)
 
 
-def run_file_read(program, file, block_size, num_tasks, direct_io=False):
+def run_file_read(program, file, block_size, num_tasks, direct_io=False, fixed=False):
     # We need to clean vm cache between runs to get accurate results
     result = subprocess.run(["sudo", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"])
     if result.returncode != 0:
@@ -28,6 +28,8 @@ def run_file_read(program, file, block_size, num_tasks, direct_io=False):
         args += ["-t", str(num_tasks)]
     if direct_io:
         args.append("-d")
+    if fixed:
+        args.append("-f")
     print(args)
     result = subprocess.run(args, capture_output=True, text=True)
     return result.stdout
@@ -93,6 +95,32 @@ def run():
         output = process_output(output)
         condy_direct_nt_results.append(float(output["throughput_mbps"]))
 
+    condy_fixed_bs_results = []
+    condy_fixed_nt_results = []
+
+    for bs in block_sizes:
+        output = run_file_read(
+            file_read_condy,
+            str(test_file),
+            bs,
+            default_num_tasks,
+            direct_io=False,
+            fixed=True,
+        )
+        output = process_output(output)
+        condy_fixed_bs_results.append(float(output["throughput_mbps"]))
+    for nt in num_tasks_list:
+        output = run_file_read(
+            file_read_condy,
+            str(test_file),
+            default_block_size,
+            nt,
+            direct_io=False,
+            fixed=True,
+        )
+        output = process_output(output)
+        condy_fixed_nt_results.append(float(output["throughput_mbps"]))
+
     asio_bs_results = []
     asio_nt_results = []
 
@@ -133,6 +161,9 @@ def run():
     fig, ax = plt.subplots()
     ax.plot(block_sizes, condy_bs_results, marker="o", label="Condy")
     ax.plot(block_sizes, condy_direct_bs_results, marker="o", label="Condy Direct I/O")
+    ax.plot(
+        block_sizes, condy_fixed_bs_results, marker="o", label="Condy Fixed Fd & Buffer"
+    )
     ax.plot(block_sizes, asio_bs_results, marker="o", label="Asio")
     ax.plot(block_sizes, sync_bs_results, marker="o", label="Sync")
     ax.plot(block_sizes, sync_direct_bs_results, marker="o", label="Sync Direct I/O")
@@ -151,6 +182,12 @@ def run():
     ax.plot(num_tasks_list, condy_nt_results, marker="o", label="Condy")
     ax.plot(
         num_tasks_list, condy_direct_nt_results, marker="o", label="Condy Direct I/O"
+    )
+    ax.plot(
+        num_tasks_list,
+        condy_fixed_nt_results,
+        marker="o",
+        label="Condy Fixed Fd & Buffer",
     )
     ax.plot(num_tasks_list, asio_nt_results, marker="o", label="Asio")
     ax.plot(num_tasks_list, sync_nt_results, marker="o", label="Sync")
