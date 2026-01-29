@@ -19,6 +19,9 @@ def run_file_random_read(
         print("Warning: Failed to drop caches. Results may be inaccurate.")
 
     args = [
+        "taskset",
+        "-c",
+        "0",
         program,
         file,
         "-b",
@@ -43,19 +46,19 @@ def generate_test_file(file_path: Path, size_in_mb: int):
 def run():
     test_file = Path("./test_file.bin")
     if not test_file.exists():
-        generate_test_file(test_file, size_in_mb=8 * 1024)  # 8 GB test file
+        generate_test_file(test_file, size_in_mb=2 * 1024)  # 2 GB test file
 
-    default_block_size = 1024 * 1024  # 1 MB
-    default_num_tasks = 16
+    default_block_size = 32 * 1024  # 32 KB
+    default_num_tasks = 32
 
     block_sizes = [
+        4 * 1024,
+        8 * 1024,
+        16 * 1024,
+        32 * 1024,
         64 * 1024,
-        256 * 1024,
-        512 * 1024,
-        1024 * 1024,
-        2 * 1024 * 1024,
-    ]  # From 64 KB to 2 MB
-    num_tasks_list = [1, 2, 4, 8, 16, 32, 64]
+    ]  # 4 KB to 64 KB
+    num_tasks_list = [4, 8, 16, 32, 64]
 
     condy_bs_results = []
     condy_nt_results = []

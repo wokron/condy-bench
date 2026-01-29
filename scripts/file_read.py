@@ -17,6 +17,9 @@ def run_file_read(program, file, block_size, num_tasks, direct_io=False, fixed=F
         print("Warning: Failed to drop caches. Results may be inaccurate.")
 
     args = [
+        "taskset",
+        "-c",
+        "0",
         program,
         file,
         "-b",
@@ -41,18 +44,19 @@ def generate_test_file(file_path: Path, size_in_mb: int):
 def run():
     test_file = Path("./test_file.bin")
     if not test_file.exists():
-        generate_test_file(test_file, size_in_mb=8 * 1024)  # 8 GB test file
+        generate_test_file(test_file, size_in_mb=2 * 1024)  # 2 GB test file
 
-    default_block_size = 1024 * 1024  # 1 MB
-    default_num_tasks = 16
+    default_block_size = 64 * 1024  # 64 KB
+    default_num_tasks = 32
 
     block_sizes = [
+        4 * 1024,
+        16 * 1024,
         64 * 1024,
         256 * 1024,
-        1 * 1024 * 1024,
-        4 * 1024 * 1024,
-    ]  # 64 KB to 4 MB
-    num_tasks_list = [1, 2, 4, 8, 16, 32, 64]
+        1024 * 1024,
+    ]  # 4 KB to 1 MB
+    num_tasks_list = [4, 8, 16, 32, 64]
 
     condy_bs_results = []
     condy_nt_results = []
@@ -189,8 +193,8 @@ def run():
         marker="o",
         label="Condy Fixed Fd & Buffer",
     )
-    ax.plot(num_tasks_list, asio_nt_results, marker="o", label="Asio")
     ax.plot(num_tasks_list, aio_nt_results, marker="o", label="Aio")
+    ax.plot(num_tasks_list, asio_nt_results, marker="o", label="Asio")
     ax.plot(num_tasks_list, sync_nt_results, marker="o", label="Sync")
     ax.plot(num_tasks_list, sync_direct_nt_results, marker="o", label="Sync Direct I/O")
     ax.set_xlabel("Number of Tasks")
