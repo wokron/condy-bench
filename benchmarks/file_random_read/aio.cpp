@@ -89,10 +89,11 @@ int main(int argc, char *argv[]) {
     }
 
     size_t index = 0;
-    size_t completed = 0;
+    size_t left = num_blocks;
+
     std::vector<iocb> cbs(num_tasks);
-    std::vector<iocb *> cbs_ptr(num_tasks, nullptr);
-    std::vector<bool> task_active(num_tasks, false);
+    std::vector<iocb *> cbs_ptr(num_tasks);
+    std::vector<io_event> events(num_tasks);
 
     for (size_t i = 0; i < num_tasks; ++i) {
         cbs_ptr[i] = &cbs[i];
@@ -100,31 +101,28 @@ int main(int argc, char *argv[]) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (index < num_blocks || std::any_of(
-                                     task_active.begin(), task_active.end(),
-                                     [](bool v) { return v; })) {
-        for (size_t i = 0; i < num_tasks; ++i) {
-            if (!task_active[i] && index < num_blocks) {
-                size_t to_read = block_size;
-                size_t current_offset = offsets[index];
-                memset(&cbs[i], 0, sizeof(iocb));
-                io_prep_pread(&cbs[i], file, total_buffer + i * block_size,
-                              to_read, current_offset);
-                cbs[i].data = (void *)i;
-                if (io_submit(ctx, 1, &cbs_ptr[i]) < 0) {
-                    perror("io_submit");
-                    io_destroy(ctx);
-                    munmap(data, total_buffer_size);
-                    close(file);
-                    return 1;
-                }
-                task_active[i] = true;
-                index++;
-            }
-        }
+    // Launch initial read requests (fill the window)
+    for (size_t i = 0; i < num_tasks && index < num_blocks; ++i) {
+        size_t off = offsets[index];
+        size_t to_read = std::min(block_size, file_size - off);
 
-        io_event events[num_tasks];
-        int ret = io_getevents(ctx, 1, num_tasks, events, nullptr);
+        std::memset(&cbs[i], 0, sizeof(iocb));
+        io_prep_pread(&cbs[i], file, total_buffer + i * block_size, to_read,
+                      off);
+        cbs[i].data = (void *)i;
+
+        if (io_submit(ctx, 1, &cbs_ptr[i]) < 0) {
+            perror("io_submit");
+            io_destroy(ctx);
+            munmap(data, total_buffer_size);
+            close(file);
+            return 1;
+        }
+        ++index;
+    }
+
+    while (index < num_blocks || left > 0) {
+        int ret = io_getevents(ctx, 1, (long)num_tasks, events.data(), nullptr);
         if (ret < 0) {
             perror("io_getevents");
             io_destroy(ctx);
@@ -132,8 +130,10 @@ int main(int argc, char *argv[]) {
             close(file);
             return 1;
         }
+
         for (int j = 0; j < ret; ++j) {
-            size_t idx = (size_t)events[j].obj->data;
+            size_t slot = (size_t)events[j].obj->data;
+
             if (events[j].res < 0) {
                 std::fprintf(stderr, "AIO read error: %zd\n", events[j].res);
                 io_destroy(ctx);
@@ -141,8 +141,28 @@ int main(int argc, char *argv[]) {
                 close(file);
                 return 1;
             }
-            task_active[idx] = false;
-            completed++;
+
+            left--;
+
+            if (index < num_blocks) {
+                size_t off = offsets[index];
+                size_t to_read = std::min(block_size, file_size - off);
+
+                std::memset(&cbs[slot], 0, sizeof(iocb));
+                io_prep_pread(&cbs[slot], file,
+                              total_buffer + slot * block_size, to_read, off);
+                cbs[slot].data = (void *)slot;
+
+                if (io_submit(ctx, 1, &cbs_ptr[slot]) < 0) {
+                    perror("io_submit");
+                    io_destroy(ctx);
+                    munmap(data, total_buffer_size);
+                    close(file);
+                    return 1;
+                }
+
+                ++index;
+            }
         }
     }
 

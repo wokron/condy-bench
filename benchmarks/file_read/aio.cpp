@@ -75,42 +75,36 @@ int main(int argc, char *argv[]) {
     }
 
     size_t offset = 0;
-    size_t completed = 0;
+    size_t left = file_size;
     std::vector<iocb> cbs(num_tasks);
     std::vector<iocb *> cbs_ptr(num_tasks);
-
-    auto start = std::chrono::high_resolution_clock::now();
+    std::vector<io_event> events(num_tasks);
 
     for (size_t i = 0; i < num_tasks; ++i) {
         cbs_ptr[i] = &cbs[i];
     }
 
-    std::vector<bool> task_active(num_tasks, false);
+    auto start = std::chrono::high_resolution_clock::now();
 
-    while (offset < file_size || std::any_of(
-                                     task_active.begin(), task_active.end(),
-                                     [](bool v) { return v; })) {
-        for (size_t i = 0; i < num_tasks; ++i) {
-            if (!task_active[i] && offset < file_size) {
-                size_t to_read = std::min(block_size, file_size - offset);
-                memset(&cbs[i], 0, sizeof(iocb));
-                io_prep_pread(&cbs[i], file, total_buffer + i * block_size,
-                              to_read, offset);
-                cbs[i].data = (void *)i;
-                if (io_submit(ctx, 1, &cbs_ptr[i]) < 0) {
-                    perror("io_submit");
-                    io_destroy(ctx);
-                    munmap(data, total_buffer_size);
-                    close(file);
-                    return 1;
-                }
-                task_active[i] = true;
-                offset += to_read;
-            }
+    // Launch initial read requests
+    for (size_t i = 0; i < num_tasks && offset < file_size; i++) {
+        size_t to_read = std::min(block_size, file_size - offset);
+        memset(&cbs[i], 0, sizeof(iocb));
+        io_prep_pread(&cbs[i], file, total_buffer + i * block_size, to_read,
+                      offset);
+        cbs[i].data = (void *)i;
+        if (io_submit(ctx, 1, &cbs_ptr[i]) < 0) {
+            perror("io_submit");
+            io_destroy(ctx);
+            munmap(data, total_buffer_size);
+            close(file);
+            return 1;
         }
+        offset += to_read;
+    }
 
-        io_event events[num_tasks];
-        int ret = io_getevents(ctx, 1, num_tasks, events, nullptr);
+    while (offset < file_size || left > 0) {
+        int ret = io_getevents(ctx, 1, num_tasks, events.data(), nullptr);
         if (ret < 0) {
             perror("io_getevents");
             io_destroy(ctx);
@@ -127,8 +121,23 @@ int main(int argc, char *argv[]) {
                 close(file);
                 return 1;
             }
-            task_active[idx] = false;
-            completed++;
+            left -= events[j].res;
+            // Submit a new read if there's more data
+            if (offset < file_size) {
+                size_t to_read = std::min(block_size, file_size - offset);
+                memset(&cbs[idx], 0, sizeof(iocb));
+                io_prep_pread(&cbs[idx], file, total_buffer + idx * block_size,
+                              to_read, offset);
+                cbs[idx].data = (void *)idx;
+                if (io_submit(ctx, 1, &cbs_ptr[idx]) < 0) {
+                    perror("io_submit");
+                    io_destroy(ctx);
+                    munmap(data, total_buffer_size);
+                    close(file);
+                    return 1;
+                }
+                offset += to_read;
+            }
         }
     }
 
