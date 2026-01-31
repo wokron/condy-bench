@@ -1,4 +1,5 @@
 #include <condy.hpp>
+#include <limits>
 #include <random>
 
 static size_t block_size = 1024 * 1024; // 1MB
@@ -80,6 +81,9 @@ int main(int argc, char *argv[]) {
     std::string filename = argv[optind];
 
     condy::RuntimeOptions options;
+    // Disable periodic event checking for fair comparison with liburing bench
+    options.sq_size(num_tasks).event_interval(
+        std::numeric_limits<size_t>::max());
     if (iopoll) {
         options.enable_iopoll();
     }
