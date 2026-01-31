@@ -38,25 +38,25 @@ def run():
     fig, ax = plt.subplots()
     ax.plot(num_messages, condy_results, marker="o", label="Condy")
     ax.plot(num_messages, asio_results, marker="o", label="Asio")
-    ax.set_xlabel("Number of Messages")
+    ax.set_xlabel("Switch Times")
     ax.set_ylabel("Time (ms)")
-    ax.set_title("Post Benchmark: Number of Messages vs Time")
+    ax.set_title("Switch Benchmark: Switch Times vs Time Taken")
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
     ax.legend()
     ax.grid()
-    plt.savefig(fig_dir / "post_number_of_messages.png")
+    plt.savefig(fig_dir / "post_switch_times.png")
     plt.close(fig)
 
     csv_saver = CSVSaver(
-        x_name="num_messages",
+        x_name="switch_times",
         x_values=num_messages,
         y_dict={
             "condy_time_ms": condy_results,
             "asio_time_ms": asio_results,
         },
     )
-    csv_saver.save(data_dir / "post_number_of_messages.csv")
+    csv_saver.save(data_dir / "post_switch_times.csv")
 
 
 if __name__ == "__main__":
