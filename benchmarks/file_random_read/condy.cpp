@@ -6,6 +6,8 @@ static size_t num_tasks = 32;
 static size_t seed = 42;
 static bool direct_io = false;
 static bool fixed = false;
+static bool iopoll = false;
+static bool sqpoll = false;
 
 condy::Coro<void> do_reads(int id, char *buffer, int file, size_t &index,
                            size_t offsets[], size_t total_blocks) {
@@ -23,20 +25,22 @@ condy::Coro<void> do_reads(int id, char *buffer, int file, size_t &index,
 }
 
 void usage(const char *prog_name) {
-    std::printf(
-        "Usage: %s [-hdf] [-b block_size] [-t num_tasks] [-s seed] <filename>\n"
-        "  -h              Show this help message\n"
-        "  -b block_size   Block size of each read operation in bytes\n"
-        "  -t num_tasks    Number of concurrent tasks\n"
-        "  -s seed         Seed for random number generator\n"
-        "  -d              Use direct I/O\n"
-        "  -f              Use fixed file descriptor and buffer\n",
-        prog_name);
+    std::printf("Usage: %s [-hdfpq] [-b block_size] [-t num_tasks] [-s seed] "
+                "<filename>\n"
+                "  -h              Show this help message\n"
+                "  -b block_size   Block size of each read operation in bytes\n"
+                "  -t num_tasks    Number of concurrent tasks\n"
+                "  -s seed         Seed for random number generator\n"
+                "  -d              Use direct I/O\n"
+                "  -f              Use fixed file descriptor and buffer\n"
+                "  -p              Use I/O polling\n"
+                "  -q              Use SQ polling\n",
+                prog_name);
 }
 
 int main(int argc, char *argv[]) {
     int opt;
-    while ((opt = getopt(argc, argv, "hb:t:s:df")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:t:s:dfpq")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -56,6 +60,12 @@ int main(int argc, char *argv[]) {
         case 'f':
             fixed = true;
             break;
+        case 'p':
+            iopoll = true;
+            break;
+        case 'q':
+            sqpoll = true;
+            break;
         default:
             usage(argv[0]);
             return 1;
@@ -69,7 +79,15 @@ int main(int argc, char *argv[]) {
 
     std::string filename = argv[optind];
 
-    condy::Runtime runtime;
+    condy::RuntimeOptions options;
+    if (iopoll) {
+        options.enable_iopoll();
+    }
+    if (sqpoll) {
+        options.enable_sqpoll();
+    }
+
+    condy::Runtime runtime(options);
 
     int oflags = O_RDONLY;
     if (direct_io) {
@@ -121,12 +139,11 @@ int main(int argc, char *argv[]) {
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    double throughput = static_cast<double>(file_size) / elapsed.count() /
-                        (1024 * 1024); // MB/s
+    double iops = static_cast<double>(num_blocks) / elapsed.count();
     std::printf(
         "time_ms:%ld\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-    std::printf("throughput_mbps:%.2f\n", throughput);
+    std::printf("iops:%.2f\n", iops);
 
     return 0;
 }

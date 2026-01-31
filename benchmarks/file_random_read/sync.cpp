@@ -82,12 +82,11 @@ int main(int argc, char *argv[]) {
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    double throughput = static_cast<double>(file_size) / elapsed.count() /
-                        (1024 * 1024); // MB/s
+    double iops = static_cast<double>(num_blocks) / elapsed.count();
     std::printf(
         "time_ms:%ld\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-    std::printf("throughput_mbps:%.2f\n", throughput);
+    std::printf("iops:%.2f\n", iops);
 
     return 0;
 }

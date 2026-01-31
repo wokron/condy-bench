@@ -15,20 +15,28 @@
 static size_t block_size = 1024 * 1024; // 1MB
 static size_t num_tasks = 32;
 static size_t seed = 42;
+static bool direct_io = false;
+static bool fixed = false;
+static bool iopoll = false;
+static bool sqpoll = false;
 
 void usage(const char *prog_name) {
-    std::printf(
-        "Usage: %s [-h] [-b block_size] [-t num_tasks] [-s seed] <filename>\n"
-        "  -h              Show this help message\n"
-        "  -b block_size   Block size of each read operation in bytes\n"
-        "  -t num_tasks    Number of concurrent tasks\n"
-        "  -s seed         Seed for random number generator\n",
-        prog_name);
+    std::printf("Usage: %s [-hdfpq] [-b block_size] [-t num_tasks] [-s seed] "
+                "<filename>\n"
+                "  -h              Show this help message\n"
+                "  -b block_size   Block size of each read operation in bytes\n"
+                "  -t num_tasks    Number of concurrent tasks\n"
+                "  -s seed         Seed for random number generator\n"
+                "  -d              Use direct I/O\n"
+                "  -f              Use fixed file descriptor and buffer\n"
+                "  -p              Use I/O polling\n"
+                "  -q              Use SQ polling\n",
+                prog_name);
 }
 
 int main(int argc, char *argv[]) {
     int opt;
-    while ((opt = getopt(argc, argv, "hb:t:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:t:s:dfpq")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -41,6 +49,18 @@ int main(int argc, char *argv[]) {
             break;
         case 's':
             seed = std::stoul(optarg);
+            break;
+        case 'd':
+            direct_io = true;
+            break;
+        case 'f':
+            fixed = true;
+            break;
+        case 'p':
+            iopoll = true;
+            break;
+        case 'q':
+            sqpoll = true;
             break;
         default:
             usage(argv[0]);
@@ -55,7 +75,11 @@ int main(int argc, char *argv[]) {
 
     std::string filename = argv[optind];
 
-    int file = open(filename.c_str(), O_RDONLY | O_DIRECT);
+    int oflags = O_RDONLY;
+    if (direct_io) {
+        oflags |= O_DIRECT;
+    }
+    int file = open(filename.c_str(), oflags);
     if (file < 0) {
         perror("open");
         return 1;
@@ -81,14 +105,38 @@ int main(int argc, char *argv[]) {
     }
     char *total_buffer = static_cast<char *>(data);
 
+    int flags = IORING_SETUP_SINGLE_ISSUER;
+    if (iopoll) {
+        flags |= IORING_SETUP_IOPOLL;
+    }
+    if (sqpoll) {
+        flags |= IORING_SETUP_SQPOLL;
+    }
+
     int r;
     io_uring ring;
-    if ((r = io_uring_queue_init((unsigned)num_tasks, &ring,
-                                 IORING_SETUP_SINGLE_ISSUER)) < 0) {
+    if ((r = io_uring_queue_init((unsigned)num_tasks, &ring, flags)) < 0) {
         std::fprintf(stderr, "io_uring_queue_init: %s\n", strerror(-r));
         munmap(data, total_buffer_size);
         close(file);
         return 1;
+    }
+
+    if (fixed) {
+        std::vector<iovec> iovecs(num_tasks);
+        for (size_t i = 0; i < num_tasks; ++i) {
+            iovecs[i].iov_base = total_buffer + i * block_size;
+            iovecs[i].iov_len = block_size;
+        }
+        if (io_uring_register_buffers(&ring, iovecs.data(), num_tasks) < 0) {
+            std::fprintf(stderr, "io_uring_register_buffers failed\n");
+            return 1;
+        }
+
+        if (io_uring_register_files(&ring, &file, 1) < 0) {
+            std::fprintf(stderr, "io_uring_register_files failed\n");
+            return 1;
+        }
     }
 
     size_t index = 0;
@@ -104,8 +152,14 @@ int main(int argc, char *argv[]) {
         size_t to_read = std::min(block_size, file_size - off);
 
         sqe = io_uring_get_sqe(&ring);
-        io_uring_prep_read(sqe, file, total_buffer + i * block_size, to_read,
-                           off);
+        if (fixed) {
+            io_uring_prep_read_fixed(sqe, 0, total_buffer + i * block_size,
+                                     to_read, off, i);
+            sqe->flags |= IOSQE_FIXED_FILE;
+        } else {
+            io_uring_prep_read(sqe, file, total_buffer + i * block_size,
+                               to_read, off);
+        }
         sqe->user_data = i;
         index++;
     }
@@ -131,8 +185,16 @@ int main(int argc, char *argv[]) {
                 size_t to_read = std::min(block_size, file_size - off);
 
                 sqe = io_uring_get_sqe(&ring);
-                io_uring_prep_read(sqe, file, total_buffer + slot * block_size,
-                                   to_read, off);
+                if (fixed) {
+                    io_uring_prep_read_fixed(sqe, 0,
+                                             total_buffer + slot * block_size,
+                                             to_read, off, slot);
+                    sqe->flags |= IOSQE_FIXED_FILE;
+                } else {
+                    io_uring_prep_read(sqe, file,
+                                       total_buffer + slot * block_size,
+                                       to_read, off);
+                }
                 sqe->user_data = slot;
                 index++;
             }
@@ -145,13 +207,11 @@ int main(int argc, char *argv[]) {
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    double throughput =
-        static_cast<double>(file_size) / elapsed.count() / (1024 * 1024);
-
+    double iops = static_cast<double>(num_blocks) / elapsed.count();
     std::printf(
         "time_ms:%ld\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-    std::printf("throughput_mbps:%.2f\n", throughput);
+    std::printf("iops:%.2f\n", iops);
 
     io_uring_queue_exit(&ring);
     munmap(data, total_buffer_size);
