@@ -16,6 +16,7 @@ bench(file_read asio asio uring)
 bench(file_read condy condy uring)
 bench(file_read sync)
 bench(file_read aio aio)
+bench(file_read uring uring)
 
 bench(file_random_read asio asio uring)
 bench(file_random_read condy condy uring)
