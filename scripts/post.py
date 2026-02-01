@@ -10,7 +10,7 @@ post_asio = benchmark_dir / "post_asio"
 
 def run_post(program, num):
     args = [
-        program,
+        str(program),
         "-n",
         str(num),
     ]

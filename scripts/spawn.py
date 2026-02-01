@@ -10,7 +10,7 @@ spawn_asio = benchmark_dir / "spawn_asio"
 
 def run_spawn(program, num_tasks):
     args = [
-        program,
+        str(program),
         "-n",
         str(num_tasks),
     ]

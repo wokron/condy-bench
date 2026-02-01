@@ -9,7 +9,7 @@ channel_asio = benchmark_dir / "channel_asio"
 
 def run_channel(program, buffer_size, num_messages, task_pair):
     args = [
-        program,
+        str(program),
         "-b",
         str(buffer_size),
         "-n",

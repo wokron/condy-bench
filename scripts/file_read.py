@@ -21,8 +21,8 @@ def run_file_read(program, file, block_size, num_tasks, direct_io=False, fixed=F
         "taskset",
         "-c",
         "0",
-        program,
-        file,
+        str(program),
+        str(file),
         "-b",
         str(block_size),
     ]

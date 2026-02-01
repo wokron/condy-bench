@@ -24,7 +24,7 @@ def run_echo_server(program, message_size, num_connections, duration, fixed_fd=F
         "taskset",
         "-c",
         "0",
-        program,
+        str(program),
         "0.0.0.0",
         str(port),
     ]
@@ -40,7 +40,7 @@ def run_echo_server(program, message_size, num_connections, duration, fixed_fd=F
             "taskset",
             "-c",
             cpus,
-            echo_stress,
+            str(echo_stress),
             "-a",
             "127.0.0.1",
             "-p",
