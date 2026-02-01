@@ -1,7 +1,8 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
+from utils import process_output, benchmark_dir, fig_dir, data_dir
+import pandas as pd
 
 
 post_condy = benchmark_dir / "post_condy"
@@ -19,6 +20,31 @@ def run_post(program, num):
     return result.stdout
 
 
+def draw_nm_plot(df_nm):
+    fig, ax = plt.subplots()
+    ax.plot(
+        df_nm["switch_times"],
+        df_nm["condy_time_ms"],
+        marker="o",
+        label="Condy",
+    )
+    ax.plot(
+        df_nm["switch_times"],
+        df_nm["asio_time_ms"],
+        marker="o",
+        label="Asio",
+    )
+    ax.set_title("Post Benchmark - Varying Switch Times")
+    ax.set_xlabel("Switch Times")
+    ax.set_ylabel("Time (ms)")
+    ax.set_xscale("log", base=2)
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid()
+    fig.savefig(fig_dir / "post_switch_times.png")
+    plt.close(fig)
+
+
 def run():
     num_messages = [524288, 1048576, 2097152, 4194304, 8388608]
 
@@ -34,29 +60,16 @@ def run():
         output = process_output(output)
         asio_results.append(float(output["time_ms"]))
 
-    # Plotting results
-    fig, ax = plt.subplots()
-    ax.plot(num_messages, condy_results, marker="o", label="Condy")
-    ax.plot(num_messages, asio_results, marker="o", label="Asio")
-    ax.set_xlabel("Switch Times")
-    ax.set_ylabel("Time (ms)")
-    ax.set_title("Switch Benchmark: Switch Times vs Time Taken")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    plt.savefig(fig_dir / "post_switch_times.png")
-    plt.close(fig)
-
-    csv_saver = CSVSaver(
-        x_name="switch_times",
-        x_values=num_messages,
-        y_dict={
+    df_nm = pd.DataFrame(
+        {
+            "switch_times": num_messages,
             "condy_time_ms": condy_results,
             "asio_time_ms": asio_results,
-        },
+        }
     )
-    csv_saver.save(data_dir / "post_switch_times.csv")
+    df_nm.to_csv(data_dir / "post_switch_times.csv", index=False)
+
+    draw_nm_plot(df_nm)
 
 
 if __name__ == "__main__":

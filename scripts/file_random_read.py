@@ -2,7 +2,8 @@ import subprocess
 import time
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
+from utils import process_output, benchmark_dir, fig_dir, data_dir
+import pandas as pd
 
 
 file_random_read_condy = benchmark_dir / "file_random_read_condy"
@@ -56,6 +57,55 @@ def generate_test_file(file_path: Path, size_in_mb: int):
         ["dd", "if=/dev/zero", f"of={file_path}", "bs=1M", f"count={size_in_mb}"],
         check=True,
     )
+
+
+def draw_nt_plot(df_nt):
+    fig, ax = plt.subplots()
+    ax.plot(
+        df_nt["queue_depth"],
+        df_nt["condy_iops"],
+        marker="o",
+        label="Condy",
+    )
+    ax.plot(
+        df_nt["queue_depth"],
+        df_nt["condy_fixed_iops"],
+        marker="o",
+        label="Condy(Fixed)",
+    )
+    ax.plot(
+        df_nt["queue_depth"],
+        df_nt["condy_fixed_direct_iops"],
+        marker="o",
+        label="Condy(Fixed+Direct)",
+    )
+    ax.plot(
+        df_nt["queue_depth"],
+        df_nt["condy_fixed_direct_iopoll_iops"],
+        marker="o",
+        label="Condy(Fixed+Direct+IOPoll)",
+    )
+    ax.plot(
+        df_nt["queue_depth"],
+        df_nt["uring_all_iops"],
+        marker="o",
+        label="Uring(Fixed+Direct+IOPoll)",
+    )
+    ax.plot(
+        df_nt["queue_depth"],
+        df_nt["aio_iops"],
+        marker="o",
+        label="Aio",
+    )
+    ax.set_title("Random Read Benchmark - Varying Queue Depth")
+    ax.set_xlabel("Queue Depth")
+    ax.set_ylabel("IOPS")
+    ax.set_xscale("log", base=2)
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid()
+    fig.savefig(fig_dir / "file_random_read_queue_depth.png")
+    plt.close(fig)
 
 
 def run():
@@ -143,57 +193,20 @@ def run():
         output = process_output(output)
         aio_nt_results.append(float(output["iops"]))
 
-    # num_tasks plots
-    fig, ax = plt.subplots()
-    ax.plot(num_tasks_list, condy_nt_results, marker="o", label="Condy")
-    ax.plot(
-        num_tasks_list,
-        condy_fixed_nt_results,
-        marker="o",
-        label="Condy(Fixed)",
-    )
-    ax.plot(
-        num_tasks_list,
-        condy_fixed_direct_nt_results,
-        marker="o",
-        label="Condy(Fixed+Direct)",
-    )
-    ax.plot(
-        num_tasks_list,
-        condy_fixed_direct_iopoll_nt_results,
-        marker="o",
-        label="Condy(Fixed+Direct+IOPoll)",
-    )
-    ax.plot(
-        num_tasks_list,
-        uring_all_nt_results,
-        marker="o",
-        label="Uring(Fixed+Direct+IOPoll)",
-    )
-    ax.plot(num_tasks_list, aio_nt_results, marker="o", label="Aio")
-    ax.set_xlabel("Queue Depth")
-    ax.set_ylabel("IOPS")
-    ax.set_title("Random Read Benchmark: Queue Depth vs IOPS")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    plt.grid()
-    fig.savefig(fig_dir / "file_random_read_queue_depth.png")
-    plt.close(fig)
-
-    csv_saver_nt = CSVSaver(
-        x_name="queue_depth",
-        x_values=num_tasks_list,
-        y_dict={
+    df_nt = pd.DataFrame(
+        {
+            "queue_depth": num_tasks_list,
             "condy_iops": condy_nt_results,
             "condy_fixed_iops": condy_fixed_nt_results,
             "condy_fixed_direct_iops": condy_fixed_direct_nt_results,
             "condy_fixed_direct_iopoll_iops": condy_fixed_direct_iopoll_nt_results,
             "uring_all_iops": uring_all_nt_results,
             "aio_iops": aio_nt_results,
-        },
+        }
     )
-    csv_saver_nt.save(data_dir / "file_random_read_queue_depth.csv")
+    df_nt.to_csv(data_dir / "file_random_read_queue_depth.csv", index=False)
+
+    draw_nt_plot(df_nt)
 
     end_time = time.time()
     print(f"Total benchmark time: {end_time - start_time:.2f} seconds")

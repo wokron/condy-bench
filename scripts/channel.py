@@ -1,7 +1,8 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
+from utils import process_output, benchmark_dir, fig_dir, data_dir
+import pandas as pd
 
 channel_condy = benchmark_dir / "channel_condy"
 channel_asio = benchmark_dir / "channel_asio"
@@ -20,6 +21,54 @@ def run_channel(program, buffer_size, num_messages, task_pair):
     print(args)
     result = subprocess.run(args, capture_output=True, text=True)
     return result.stdout
+
+
+def draw_nm_plot(df_nm):
+    fig, ax = plt.subplots()
+    ax.plot(
+        df_nm["num_messages"],
+        df_nm["condy_time_ms"],
+        marker="o",
+        label="Condy",
+    )
+    ax.plot(
+        df_nm["num_messages"],
+        df_nm["asio_time_ms"],
+        marker="o",
+        label="Asio",
+    )
+    ax.set_title("Channel Benchmark - Varying Number of Messages")
+    ax.set_xlabel("Number of Messages")
+    ax.set_ylabel("Time (ms)")
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid()
+    fig.savefig(fig_dir / "channel_number_of_messages.png")
+    plt.close(fig)
+
+
+def draw_tp_plot(df_tp):
+    fig, ax = plt.subplots()
+    ax.plot(
+        df_tp["task_pairs"],
+        df_tp["condy_time_ms"],
+        marker="o",
+        label="Condy",
+    )
+    ax.plot(
+        df_tp["task_pairs"],
+        df_tp["asio_time_ms"],
+        marker="o",
+        label="Asio",
+    )
+    ax.set_title("Channel Benchmark - Varying Number of Task Pairs")
+    ax.set_xlabel("Number of Task Pairs")
+    ax.set_ylabel("Time (ms)")
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid()
+    fig.savefig(fig_dir / "channel_task_pairs.png")
+    plt.close(fig)
 
 
 def run():
@@ -62,51 +111,26 @@ def run():
     num_messages = list(map(str, num_messages))
     task_pairs = list(map(str, task_pairs))
 
-    # num_message plot
-    fig, ax = plt.subplots()
-    ax.plot(num_messages, condy_nm_results, marker="o", label="Condy")
-    ax.plot(num_messages, asio_nm_results, marker="o", label="Asio")
-    ax.set_title("Channel Benchmark - Varying Number of Messages")
-    ax.set_xlabel("Number of Messages")
-    ax.set_ylabel("Time (ms)")
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "channel_number_of_messages.png")
-    plt.close(fig)
-
-    # task_pairs plot
-    fig, ax = plt.subplots()
-    ax.plot(task_pairs, condy_tp_results, marker="o", label="Condy")
-    ax.plot(task_pairs, asio_tp_results, marker="o", label="Asio")
-    ax.set_title("Channel Benchmark - Varying Number of Task Pairs")
-    ax.set_xlabel("Number of Task Pairs")
-    ax.set_ylabel("Time (ms)")
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "channel_task_pairs.png")
-    plt.close(fig)
-
-    csv_saver_nm = CSVSaver(
-        x_name="num_messages",
-        x_values=num_messages,
-        y_dict={
+    df_nm = pd.DataFrame(
+        {
+            "num_messages": num_messages,
             "condy_time_ms": condy_nm_results,
             "asio_time_ms": asio_nm_results,
-        },
+        }
     )
-    csv_saver_nm.save(data_dir / "channel_number_of_messages.csv")
+    df_nm.to_csv(data_dir / "channel_number_of_messages.csv", index=False)
 
-    csv_saver_tp = CSVSaver(
-        x_name="task_pairs",
-        x_values=task_pairs,
-        y_dict={
+    df_tp = pd.DataFrame(
+        {
+            "task_pairs": task_pairs,
             "condy_time_ms": condy_tp_results,
             "asio_time_ms": asio_tp_results,
-        },
+        }
     )
-    csv_saver_tp.save(data_dir / "channel_task_pairs.csv")
+    df_tp.to_csv(data_dir / "channel_task_pairs.csv", index=False)
+
+    draw_nm_plot(df_nm)
+    draw_tp_plot(df_tp)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
-
+from utils import process_output, benchmark_dir, fig_dir, data_dir
+import pandas as pd
 
 spawn_condy = benchmark_dir / "spawn_condy"
 spawn_asio = benchmark_dir / "spawn_asio"
@@ -17,6 +17,31 @@ def run_spawn(program, num_tasks):
     print(args)
     result = subprocess.run(args, capture_output=True, text=True)
     return result.stdout
+
+
+def draw_nt_plot(df_nt):
+    fig, ax = plt.subplots()
+    ax.plot(
+        df_nt["num_tasks"],
+        df_nt["condy_time_ms"],
+        marker="o",
+        label="Condy",
+    )
+    ax.plot(
+        df_nt["num_tasks"],
+        df_nt["asio_time_ms"],
+        marker="o",
+        label="Asio",
+    )
+    ax.set_title("Spawn Benchmark - Varying Number of Tasks")
+    ax.set_xlabel("Number of Tasks")
+    ax.set_ylabel("Time (ms)")
+    ax.set_xscale("log", base=2)
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid()
+    fig.savefig(fig_dir / "spawn_number_of_tasks.png")
+    plt.close(fig)
 
 
 def run():
@@ -34,30 +59,16 @@ def run():
         output = process_output(output)
         asio_results.append(float(output["time_ms"]))
 
-    # Plotting results
-    fig, ax = plt.subplots()
-    ax.plot(num_tasks, condy_results, marker="o", label="Condy")
-    ax.plot(num_tasks, asio_results, marker="o", label="Asio")
-    ax.set_xlabel("Number of Tasks")
-    ax.set_ylabel("Time (ms)")
-    ax.set_title("Spawn Benchmark: Number of Tasks vs Time")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig_path = fig_dir / "spawn_benchmark.png"
-    plt.savefig(fig_path)
-    plt.close(fig)
-
-    csv_saver = CSVSaver(
-        x_name="num_tasks",
-        x_values=num_tasks,
-        y_dict={
+    df_nt = pd.DataFrame(
+        {
+            "num_tasks": num_tasks,
             "condy_time_ms": condy_results,
             "asio_time_ms": asio_results,
-        },
+        }
     )
-    csv_saver.save(data_dir / "spawn_number_of_tasks.csv")
+    df_nt.to_csv(data_dir / "spawn_number_of_tasks.csv", index=False)
+
+    draw_nt_plot(df_nt)
 
 
 if __name__ == "__main__":

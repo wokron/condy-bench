@@ -3,8 +3,8 @@ import time
 from matplotlib import pyplot as plt
 from pathlib import Path
 import os
-from utils import process_output, benchmark_dir, fig_dir, data_dir, CSVSaver
-
+from utils import process_output, benchmark_dir, fig_dir, data_dir
+import pandas as pd
 
 echo_server_condy = benchmark_dir / "echo_server_condy"
 echo_server_asio = benchmark_dir / "echo_server_asio"
@@ -64,6 +64,42 @@ def run_echo_server(program, message_size, num_connections, duration, fixed_fd=F
         proc.wait()
 
 
+def draw_conn_plot(df_conn):
+    fig, ax = plt.subplots()
+    ax.plot(
+        df_conn["num_connections"],
+        df_conn["condy_mbps"],
+        marker="o",
+        label="Condy",
+    )
+    ax.plot(
+        df_conn["num_connections"],
+        df_conn["condy_fixed_fd_mbps"],
+        marker="o",
+        label="Condy Fixed Fd",
+    )
+    ax.plot(
+        df_conn["num_connections"],
+        df_conn["asio_mbps"],
+        marker="o",
+        label="Asio",
+    )
+    ax.plot(
+        df_conn["num_connections"],
+        df_conn["epoll_mbps"],
+        marker="o",
+        label="Epoll",
+    )
+    ax.set_title("Echo Server Throughput vs Number of Connections")
+    ax.set_xlabel("Number of Connections")
+    ax.set_ylabel("Throughput (MB/s)")
+    ax.set_xscale("log", base=2)
+    ax.legend()
+    ax.grid()
+    fig.savefig(fig_dir / "echo_server_num_connections.png")
+    plt.close(fig)
+
+
 def run():
     default_message_size = 1024  # 1 KB
     default_duration = 10  # seconds
@@ -71,7 +107,6 @@ def run():
     num_connections = [4, 8, 16, 32, 64]
 
     condy_conn_results = []
-
     for conn in num_connections:
         output = run_echo_server(
             echo_server_condy,
@@ -83,7 +118,6 @@ def run():
         condy_conn_results.append(float(output["resp_bytes_per_sec"]))
 
     condy_fixed_conn_results = []
-
     for conn in num_connections:
         output = run_echo_server(
             echo_server_condy,
@@ -96,7 +130,6 @@ def run():
         condy_fixed_conn_results.append(float(output["resp_bytes_per_sec"]))
 
     asio_conn_results = []
-
     for conn in num_connections:
         output = run_echo_server(
             echo_server_asio,
@@ -108,7 +141,6 @@ def run():
         asio_conn_results.append(float(output["resp_bytes_per_sec"]))
 
     epoll_conn_results = []
-
     for conn in num_connections:
         output = run_echo_server(
             echo_server_epoll,
@@ -127,39 +159,17 @@ def run():
     asio_conn_results = list(map(bps_to_mbps, asio_conn_results))
     epoll_conn_results = list(map(bps_to_mbps, epoll_conn_results))
 
-    print("condy_conn_results:", condy_conn_results)
-    print("condy_fixed_conn_results:", condy_fixed_conn_results)
-    print("asio_conn_results:", asio_conn_results)
-    print("epoll_conn_results:", epoll_conn_results)
-
-    # num_connections plot
-    fig, ax = plt.subplots()
-    ax.plot(num_connections, condy_conn_results, marker="o", label="Condy")
-    ax.plot(
-        num_connections, condy_fixed_conn_results, marker="o", label="Condy Fixed Fd"
-    )
-    ax.plot(num_connections, asio_conn_results, marker="o", label="Asio")
-    ax.plot(num_connections, epoll_conn_results, marker="o", label="Epoll")
-    ax.set_xlabel("Number of Connections")
-    ax.set_ylabel("Throughput (MB/s)")
-    ax.set_title("Echo Server Throughput vs Number of Connections")
-    ax.set_xscale("log", base=2)
-    ax.legend()
-    ax.grid(True)
-    fig.savefig(fig_dir / "echo_server_num_connections.png")
-    plt.close(fig)
-
-    csv_saver = CSVSaver(
-        x_name="num_connections",
-        x_values=num_connections,
-        y_dict={
+    df_conn = pd.DataFrame(
+        {
+            "num_connections": num_connections,
             "condy_mbps": condy_conn_results,
             "condy_fixed_fd_mbps": condy_fixed_conn_results,
             "asio_mbps": asio_conn_results,
             "epoll_mbps": epoll_conn_results,
-        },
+        }
     )
-    csv_saver.save(data_dir / "echo_server_num_connections.csv")
+    df_conn.to_csv(data_dir / "echo_server_num_connections.csv", index=False)
+    draw_conn_plot(df_conn)
 
 
 if __name__ == "__main__":
