@@ -11,6 +11,13 @@ post_asio = benchmark_dir / "post_asio"
 
 def run_post(program, num):
     args = [
+        "sudo", 
+        "nice",
+        "-n",
+        "-20",
+        "taskset",
+        "-c",
+        "0",
         str(program),
         "-n",
         str(num),

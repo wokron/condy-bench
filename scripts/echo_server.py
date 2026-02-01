@@ -21,6 +21,10 @@ def run_echo_server(program, message_size, num_connections, duration, fixed_fd=F
     next_port += 1
 
     args_server = [
+        "sudo",
+        "nice",
+        "-n",
+        "-20",
         "taskset",
         "-c",
         "0",

@@ -10,6 +10,13 @@ spawn_asio = benchmark_dir / "spawn_asio"
 
 def run_spawn(program, num_tasks):
     args = [
+        "sudo",
+        "nice",
+        "-n",
+        "-20",
+        "taskset",
+        "-c",
+        "0",
         str(program),
         "-n",
         str(num_tasks),
