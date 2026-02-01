@@ -53,52 +53,51 @@ def run_file_read(
 
 
 def draw_nt_plot(df_nt):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_throughput_mbps"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s", "^", "D", "v", "p"]
+    labels = [
+        "Condy",
+        "Condy(Fixed)",
+        "Condy(Fixed+Direct)",
+        "Condy(Fixed+Direct+IOPoll)",
+        "Uring(Fixed+Direct+IOPoll)",
+        "Aio",
+    ]
+    columns = [
+        "condy_throughput_mbps",
+        "condy_fixed_throughput_mbps",
+        "condy_fixed_direct_throughput_mbps",
+        "condy_fixed_direct_iopoll_throughput_mbps",
+        "uring_all_throughput_mbps",
+        "aio_throughput_mbps",
+    ]
+
+    x = np.arange(len(df_nt))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_nt[col],
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Queue Depth")
+    plt.ylabel("Throughput (MB/s)")
+    plt.xticks(x, df_nt["queue_depth"])
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "file_read_queue_depth.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_fixed_throughput_mbps"],
-        marker="o",
-        label="Condy(Fixed)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_fixed_direct_throughput_mbps"],
-        marker="o",
-        label="Condy(Fixed+Direct)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_fixed_direct_iopoll_throughput_mbps"],
-        marker="o",
-        label="Condy(Fixed+Direct+IOPoll)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["uring_all_throughput_mbps"],
-        marker="o",
-        label="Uring(Fixed+Direct+IOPoll)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["aio_throughput_mbps"],
-        marker="o",
-        label="Aio",
-    )
-    ax.set_title("File Read Benchmark - Varying Queue Depth")
-    ax.set_xlabel("Queue Depth")
-    ax.set_ylabel("Throughput (MB/s)")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "file_read_queue_depth.png")
-    plt.close(fig)
+    plt.close()
 
 
 def run():

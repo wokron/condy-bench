@@ -53,52 +53,50 @@ def run_file_random_read(
 
 
 def draw_nt_plot(df_nt):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_iops"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s", "^", "D", "v", "p"]
+    labels = [
+        "Condy",
+        "Condy(Fixed)",
+        "Condy(Fixed+Direct)",
+        "Condy(Fixed+Direct+IOPoll)",
+        "Uring(Fixed+Direct+IOPoll)",
+        "Aio",
+    ]
+    columns = [
+        "condy_iops",
+        "condy_fixed_iops",
+        "condy_fixed_direct_iops",
+        "condy_fixed_direct_iopoll_iops",
+        "uring_all_iops",
+        "aio_iops",
+    ]
+    x = np.arange(len(df_nt))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_nt[col] / 1000,
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Queue Depth")
+    plt.ylabel("KIOPS")
+    plt.xticks(x, df_nt["queue_depth"])
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "file_random_read_queue_depth.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_fixed_iops"],
-        marker="o",
-        label="Condy(Fixed)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_fixed_direct_iops"],
-        marker="o",
-        label="Condy(Fixed+Direct)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["condy_fixed_direct_iopoll_iops"],
-        marker="o",
-        label="Condy(Fixed+Direct+IOPoll)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["uring_all_iops"],
-        marker="o",
-        label="Uring(Fixed+Direct+IOPoll)",
-    )
-    ax.plot(
-        df_nt["queue_depth"],
-        df_nt["aio_iops"],
-        marker="o",
-        label="Aio",
-    )
-    ax.set_title("Random Read Benchmark - Varying Queue Depth")
-    ax.set_xlabel("Queue Depth")
-    ax.set_ylabel("IOPS")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "file_random_read_queue_depth.png")
-    plt.close(fig)
+    plt.close()
 
 
 def run():

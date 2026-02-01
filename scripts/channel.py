@@ -24,51 +24,73 @@ def run_channel(program, buffer_size, num_messages, task_pair):
 
 
 def draw_nm_plot(df_nm):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_nm["num_messages"],
-        df_nm["condy_time_ms"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s"]
+    labels = ["Condy", "Asio"]
+    columns = ["condy_time_ms", "asio_time_ms"]
+
+    x = np.arange(len(df_nm))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_nm[col],
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Number of Messages")
+    plt.ylabel("Time (ms)")
+    plt.xticks(x, df_nm["num_messages"])
+    plt.yscale("log")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "channel_number_of_messages.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_nm["num_messages"],
-        df_nm["asio_time_ms"],
-        marker="o",
-        label="Asio",
-    )
-    ax.set_title("Channel Benchmark - Varying Number of Messages")
-    ax.set_xlabel("Number of Messages")
-    ax.set_ylabel("Time (ms)")
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "channel_number_of_messages.png")
-    plt.close(fig)
+    plt.close()
 
 
 def draw_tp_plot(df_tp):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_tp["task_pairs"],
-        df_tp["condy_time_ms"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s"]
+    labels = ["Condy", "Asio"]
+    columns = ["condy_time_ms", "asio_time_ms"]
+
+    x = np.arange(len(df_tp))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_tp[col],
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Number of Task Pairs")
+    plt.ylabel("Time (ms)")
+    plt.xticks(x, df_tp["task_pairs"])
+    plt.yscale("log")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "channel_task_pairs.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_tp["task_pairs"],
-        df_tp["asio_time_ms"],
-        marker="o",
-        label="Asio",
-    )
-    ax.set_title("Channel Benchmark - Varying Number of Task Pairs")
-    ax.set_xlabel("Number of Task Pairs")
-    ax.set_ylabel("Time (ms)")
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "channel_task_pairs.png")
-    plt.close(fig)
+    plt.close()
 
 
 def run():

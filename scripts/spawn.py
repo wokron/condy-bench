@@ -20,28 +20,38 @@ def run_spawn(program, num_tasks):
 
 
 def draw_nt_plot(df_nt):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_nt["num_tasks"],
-        df_nt["condy_time_ms"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s"]
+    labels = ["Condy", "Asio"]
+    columns = ["condy_time_ms", "asio_time_ms"]
+
+    x = np.arange(len(df_nt))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_nt[col],
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Number of Tasks")
+    plt.ylabel("Time (ms)")
+    plt.xticks(x, df_nt["num_tasks"])
+    plt.yscale("log")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "spawn_number_of_tasks.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_nt["num_tasks"],
-        df_nt["asio_time_ms"],
-        marker="o",
-        label="Asio",
-    )
-    ax.set_title("Spawn Benchmark - Varying Number of Tasks")
-    ax.set_xlabel("Number of Tasks")
-    ax.set_ylabel("Time (ms)")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "spawn_number_of_tasks.png")
-    plt.close(fig)
+    plt.close()
 
 
 def run():

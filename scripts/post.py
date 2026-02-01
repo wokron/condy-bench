@@ -21,28 +21,38 @@ def run_post(program, num):
 
 
 def draw_nm_plot(df_nm):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_nm["switch_times"],
-        df_nm["condy_time_ms"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s"]
+    labels = ["Condy", "Asio"]
+    columns = ["condy_time_ms", "asio_time_ms"]
+
+    x = np.arange(len(df_nm))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_nm[col],
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Switch Times")
+    plt.ylabel("Time (ms)")
+    plt.xticks(x, df_nm["switch_times"])
+    plt.yscale("log")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "post_switch_times.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_nm["switch_times"],
-        df_nm["asio_time_ms"],
-        marker="o",
-        label="Asio",
-    )
-    ax.set_title("Post Benchmark - Varying Switch Times")
-    ax.set_xlabel("Switch Times")
-    ax.set_ylabel("Time (ms)")
-    ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "post_switch_times.png")
-    plt.close(fig)
+    plt.close()
 
 
 def run():

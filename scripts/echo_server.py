@@ -65,39 +65,37 @@ def run_echo_server(program, message_size, num_connections, duration, fixed_fd=F
 
 
 def draw_conn_plot(df_conn):
-    fig, ax = plt.subplots()
-    ax.plot(
-        df_conn["num_connections"],
-        df_conn["condy_mbps"],
-        marker="o",
-        label="Condy",
+    import numpy as np
+
+    markers = ["o", "s", "^", "D"]
+    labels = ["Condy", "Condy Fixed Fd", "Asio", "Epoll"]
+    columns = ["condy_mbps", "condy_fixed_fd_mbps", "asio_mbps", "epoll_mbps"]
+
+    x = np.arange(len(df_conn))
+    for i, col in enumerate(columns):
+        plt.plot(
+            x,
+            df_conn[col],
+            marker=markers[i],
+            linestyle="-",
+            label=labels[i],
+            markersize=8,
+            markerfacecolor="none",
+            markeredgewidth=2,
+        )
+
+    plt.xlabel("Number of Connections")
+    plt.ylabel("Throughput (MB/s)")
+    plt.xticks(x, df_conn["num_connections"])
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(
+        fig_dir / "echo_server_num_connections.png",
+        dpi=200,
+        bbox_inches="tight",
     )
-    ax.plot(
-        df_conn["num_connections"],
-        df_conn["condy_fixed_fd_mbps"],
-        marker="o",
-        label="Condy Fixed Fd",
-    )
-    ax.plot(
-        df_conn["num_connections"],
-        df_conn["asio_mbps"],
-        marker="o",
-        label="Asio",
-    )
-    ax.plot(
-        df_conn["num_connections"],
-        df_conn["epoll_mbps"],
-        marker="o",
-        label="Epoll",
-    )
-    ax.set_title("Echo Server Throughput vs Number of Connections")
-    ax.set_xlabel("Number of Connections")
-    ax.set_ylabel("Throughput (MB/s)")
-    ax.set_xscale("log", base=2)
-    ax.legend()
-    ax.grid()
-    fig.savefig(fig_dir / "echo_server_num_connections.png")
-    plt.close(fig)
+    plt.close()
 
 
 def run():
