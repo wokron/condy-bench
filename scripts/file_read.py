@@ -1,7 +1,7 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir, data_dir
+from utils import process_output, generate_test_file, benchmark_dir, fig_dir, data_dir
 import pandas as pd
 
 file_read_condy = benchmark_dir / "file_read_condy"
@@ -50,13 +50,6 @@ def run_file_read(
     print(args)
     result = subprocess.run(args, capture_output=True, text=True, check=True)
     return result.stdout
-
-
-def generate_test_file(file_path: Path, size_in_mb: int):
-    subprocess.run(
-        ["dd", "if=/dev/zero", f"of={file_path}", "bs=1M", f"count={size_in_mb}"],
-        check=True,
-    )
 
 
 def draw_nt_plot(df_nt):

@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 
 def process_output(output: str):
@@ -10,6 +11,13 @@ def process_output(output: str):
         value = split[1].strip()
         result[key] = value
     return result
+
+
+def generate_test_file(file_path: Path, size_in_mb: int):
+    subprocess.run(
+        ["dd", "if=/dev/zero", f"of={file_path}", "bs=1M", f"count={size_in_mb}"],
+        check=True,
+    )
 
 
 benchmark_dir = Path("./build/benchmarks/")
