@@ -5,6 +5,8 @@ static size_t block_size = 1024 * 1024; // 1MB
 static size_t num_tasks = 32;
 static bool direct_io = false;
 static bool fixed = false;
+static bool iopoll = false;
+static bool sqpoll = false;
 
 condy::Coro<void> do_reads(int id, char *buffer, int file, size_t &offset,
                            size_t total_size) {
@@ -23,18 +25,20 @@ condy::Coro<void> do_reads(int id, char *buffer, int file, size_t &offset,
 }
 
 void usage(const char *prog_name) {
-    std::printf("Usage: %s [-hdf] [-b block_size] [-t num_tasks] <filename>\n"
+    std::printf("Usage: %s [-hdfpq] [-b block_size] [-t num_tasks] <filename>\n"
                 "  -h              Show this help message\n"
                 "  -b block_size   Block size of each read operation in bytes\n"
                 "  -t num_tasks    Number of concurrent tasks\n"
                 "  -d              Use direct I/O\n"
-                "  -f              Use fixed fd and buffer\n",
+                "  -f              Use fixed fd and buffer\n"
+                "  -p              Use I/O polling\n"
+                "  -q              Use SQ polling\n",
                 prog_name);
 }
 
 int main(int argc, char *argv[]) {
     int opt;
-    while ((opt = getopt(argc, argv, "hb:t:df")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:t:dfpq")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -51,6 +55,12 @@ int main(int argc, char *argv[]) {
         case 'f':
             fixed = true;
             break;
+        case 'p':
+            iopoll = true;
+            break;
+        case 'q':
+            sqpoll = true;
+            break;
         default:
             usage(argv[0]);
             return 1;
@@ -64,7 +74,18 @@ int main(int argc, char *argv[]) {
 
     std::string filename = argv[optind];
 
-    condy::Runtime runtime;
+    condy::RuntimeOptions options;
+    // Disable periodic event checking for fair comparison with liburing bench
+    options.event_interval(std::numeric_limits<size_t>::max());
+    options.sq_size(num_tasks);
+    if (iopoll) {
+        options.enable_iopoll();
+    }
+    if (sqpoll) {     
+        options.enable_sqpoll();
+    }
+
+    condy::Runtime runtime(options);
 
     int oflag = O_RDONLY;
     if (direct_io) {

@@ -11,18 +11,26 @@
 
 static size_t block_size = 1024 * 1024; // 1MB
 static size_t num_tasks = 32;
+static bool direct_io = false;
+static bool fixed = false;
+static bool iopoll = false;
+static bool sqpoll = false;
 
 void usage(const char *prog_name) {
-    std::printf("Usage: %s [-h] [-b block_size] [-t num_tasks] <filename>\n"
+    std::printf("Usage: %s [-hdfpq] [-b block_size] [-t num_tasks] <filename>\n"
                 "  -h              Show this help message\n"
                 "  -b block_size   Block size of each read operation in bytes\n"
-                "  -t num_tasks    Number of concurrent tasks\n",
+                "  -t num_tasks    Number of concurrent tasks\n"
+                "  -d              Use direct I/O\n"
+                "  -f              Use fixed fd and buffer\n"
+                "  -p              Use I/O polling\n"
+                "  -q              Use SQ polling\n",
                 prog_name);
 }
 
 int main(int argc, char *argv[]) {
     int opt;
-    while ((opt = getopt(argc, argv, "hb:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:t:dfpq")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -32,6 +40,18 @@ int main(int argc, char *argv[]) {
             break;
         case 't':
             num_tasks = std::stoul(optarg);
+            break;
+        case 'd':
+            direct_io = true;
+            break;
+        case 'f':
+            fixed = true;
+            break;
+        case 'p':
+            iopoll = true;
+            break;
+        case 'q':
+            sqpoll = true;
             break;
         default:
             usage(argv[0]);
@@ -46,7 +66,11 @@ int main(int argc, char *argv[]) {
 
     std::string filename = argv[optind];
 
-    int file = open(filename.c_str(), O_RDONLY | O_DIRECT);
+    int oflag = O_RDONLY;
+    if (direct_io) {
+        oflag |= O_DIRECT;
+    }
+    int file = open(filename.c_str(), oflag);
     if (file < 0) {
         perror("open");
         return 1;
@@ -65,14 +89,37 @@ int main(int argc, char *argv[]) {
     }
     char *total_buffer = static_cast<char *>(data);
 
+    int flags = IORING_SETUP_SINGLE_ISSUER;
+    if (iopoll) {
+        flags |= IORING_SETUP_IOPOLL;
+    }
+    if (sqpoll) {
+        flags |= IORING_SETUP_SQPOLL;
+    }
     int r;
     io_uring ring;
-    if ((r = io_uring_queue_init(num_tasks, &ring,
-                                 IORING_SETUP_SINGLE_ISSUER)) < 0) {
+    if ((r = io_uring_queue_init(num_tasks, &ring, flags)) < 0) {
         std::fprintf(stderr, "io_uring_queue_init: %s\n", strerror(-r));
         munmap(data, total_buffer_size);
         close(file);
         return 1;
+    }
+
+    if (fixed) {
+        std::vector<iovec> iovecs(num_tasks);
+        for (size_t i = 0; i < num_tasks; ++i) {
+            iovecs[i].iov_base = total_buffer + i * block_size;
+            iovecs[i].iov_len = block_size;
+        }
+        if (io_uring_register_buffers(&ring, iovecs.data(), num_tasks) < 0) {
+            std::fprintf(stderr, "io_uring_register_buffers failed\n");
+            return 1;
+        }
+
+        if (io_uring_register_files(&ring, &file, 1) < 0) {
+            std::fprintf(stderr, "io_uring_register_files failed\n");
+            return 1;
+        }
     }
 
     size_t offset = 0;
@@ -86,8 +133,14 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < num_tasks && offset < file_size; i++) {
         size_t to_read = std::min(block_size, file_size - offset);
         sqe = io_uring_get_sqe(&ring);
-        io_uring_prep_read(sqe, file, total_buffer + i * block_size, to_read,
-                           offset);
+        if (fixed) {
+            io_uring_prep_read_fixed(sqe, 0, total_buffer + i * block_size,
+                                     to_read, offset, i);
+            sqe->flags |= IOSQE_FIXED_FILE;
+        } else {
+            io_uring_prep_read(sqe, file, total_buffer + i * block_size,
+                               to_read, offset);
+        }
         sqe->user_data = i;
         offset += to_read;
     }
@@ -111,8 +164,16 @@ int main(int argc, char *argv[]) {
             if (offset < file_size) {
                 size_t to_read = std::min(block_size, file_size - offset);
                 sqe = io_uring_get_sqe(&ring);
-                io_uring_prep_read(sqe, file, total_buffer + idx * block_size,
-                                   to_read, offset);
+                if (fixed) {
+                    io_uring_prep_read_fixed(sqe, 0,
+                                             total_buffer + idx * block_size,
+                                             to_read, offset, idx);
+                    sqe->flags |= IOSQE_FIXED_FILE;
+                } else {
+                    io_uring_prep_read(sqe, file,
+                                       total_buffer + idx * block_size, to_read,
+                                       offset);
+                }
                 sqe->user_data = idx;
                 offset += to_read;
             }

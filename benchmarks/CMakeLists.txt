@@ -12,7 +12,6 @@ bench(spawn condy condy uring)
 bench(post asio asio)
 bench(post condy condy uring)
 
-bench(file_read asio asio uring)
 bench(file_read condy condy uring)
 bench(file_read sync)
 bench(file_read aio aio)
