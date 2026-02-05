@@ -9,3 +9,4 @@ compio = { version = "0.18.0", features = ["macros", "fs"] }
 compio-runtime = "0.11.0"
 futures = "0.3.31"
 futures-lite = "2.6.1"
+monoio = "0.2.4"
