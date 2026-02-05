@@ -15,10 +15,8 @@ async fn task_func() {}
 async fn spawner(num_tasks: usize) {
     let mut handles = Vec::with_capacity(num_tasks);
     for _ in 0..num_tasks {
-        // compio::runtime::Runtime::spawn 返回 JoinHandle
         handles.push(spawn(task_func()));
     }
-    // 等待所有任务完成
     for handle in handles {
         let _ = handle.await;
     }

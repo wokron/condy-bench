@@ -23,7 +23,7 @@ async fn producer(mut tx: Sender<Option<i32>>, num_messages: usize) {
     for i in 0..num_messages as i32 {
         let _ = tx.send(Some(i)).await;
     }
-    let _ = tx.send(None).await; // 发送结束信号
+    let _ = tx.send(None).await;
 }
 
 async fn consumer(mut rx: Receiver<Option<i32>>) {
