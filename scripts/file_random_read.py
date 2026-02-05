@@ -2,7 +2,14 @@ import subprocess
 import time
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, generate_test_file, benchmark_dir, fig_dir, data_dir
+from utils import (
+    process_output,
+    generate_test_file,
+    benchmark_dir,
+    benchmark_rust_dir,
+    fig_dir,
+    data_dir,
+)
 import pandas as pd
 
 
@@ -10,6 +17,8 @@ file_random_read_condy = benchmark_dir / "file_random_read_condy"
 file_random_read_sync = benchmark_dir / "file_random_read_sync"
 file_random_read_aio = benchmark_dir / "file_random_read_aio"
 file_random_read_uring = benchmark_dir / "file_random_read_uring"
+file_random_read_compio = benchmark_rust_dir / "file_random_read_compio"
+file_random_read_monoio = benchmark_rust_dir / "file_random_read_monoio"
 
 
 def run_file_random_read(
@@ -55,7 +64,7 @@ def run_file_random_read(
 def draw_nt_plot(df_nt):
     import numpy as np
 
-    markers = ["o", "s", "^", "D", "v", "p"]
+    markers = ["o", "s", "^", "D", "v", "p", "*", "h"]
     labels = [
         "Condy",
         "Condy(Fixed)",
@@ -63,6 +72,8 @@ def draw_nt_plot(df_nt):
         "Condy(Fixed+Direct+IOPoll)",
         "Uring(Fixed+Direct+IOPoll)",
         "Aio",
+        "Compio(Direct)",
+        "Monoio(Direct)",
     ]
     columns = [
         "condy_iops",
@@ -71,6 +82,8 @@ def draw_nt_plot(df_nt):
         "condy_fixed_direct_iopoll_iops",
         "uring_all_iops",
         "aio_iops",
+        "compio_iops",
+        "monoio_iops",
     ]
     x = np.arange(len(df_nt))
     for i, col in enumerate(columns):
@@ -184,6 +197,30 @@ def run():
         output = process_output(output)
         aio_nt_results.append(float(output["iops"]))
 
+    compio_nt_results = []
+    for nt in num_tasks_list:
+        output = run_file_random_read(
+            file_random_read_compio,
+            str(test_file),
+            default_block_size,
+            nt,
+            direct_io=True,
+        )
+        output = process_output(output)
+        compio_nt_results.append(float(output["iops"]))
+
+    monoio_nt_results = []
+    for nt in num_tasks_list:
+        output = run_file_random_read(
+            file_random_read_monoio,
+            str(test_file),
+            default_block_size,
+            nt,
+            direct_io=True,
+        )
+        output = process_output(output)
+        monoio_nt_results.append(float(output["iops"]))
+
     df_nt = pd.DataFrame(
         {
             "queue_depth": num_tasks_list,
@@ -193,6 +230,8 @@ def run():
             "condy_fixed_direct_iopoll_iops": condy_fixed_direct_iopoll_nt_results,
             "uring_all_iops": uring_all_nt_results,
             "aio_iops": aio_nt_results,
+            "compio_iops": compio_nt_results,
+            "monoio_iops": monoio_nt_results,
         }
     )
     df_nt.to_csv(data_dir / "file_random_read_queue_depth.csv", index=False)
