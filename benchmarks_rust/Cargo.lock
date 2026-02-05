@@ -90,6 +90,7 @@ dependencies = [
  "compio-runtime",
  "futures",
  "futures-lite",
+ "libc",
  "monoio",
 ]
 
