@@ -21,6 +21,7 @@ def generate_test_file(file_path: Path, size_in_mb: int):
 
 
 benchmark_dir = Path("./build/benchmarks/")
+benchmark_rust_dir = Path("./build/benchmarks_rust/release/")
 
 results_dir = Path("./results/")
 

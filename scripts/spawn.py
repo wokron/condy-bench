@@ -1,11 +1,13 @@
 import subprocess
 from matplotlib import pyplot as plt
 from pathlib import Path
-from utils import process_output, benchmark_dir, fig_dir, data_dir
+from utils import process_output, benchmark_dir, benchmark_rust_dir, fig_dir, data_dir
 import pandas as pd
 
 spawn_condy = benchmark_dir / "spawn_condy"
 spawn_asio = benchmark_dir / "spawn_asio"
+spawn_compio = benchmark_rust_dir / "spawn_compio"
+spawn_monoio = benchmark_rust_dir / "spawn_monoio"
 
 
 def run_spawn(program, num_tasks):
@@ -29,9 +31,9 @@ def run_spawn(program, num_tasks):
 def draw_nt_plot(df_nt):
     import numpy as np
 
-    markers = ["o", "s"]
-    labels = ["Condy", "Asio"]
-    columns = ["condy_time_ms", "asio_time_ms"]
+    markers = ["o", "s", "^", "d"]
+    labels = ["Condy", "Asio", "Compio", "Monoio"]
+    columns = ["condy_time_ms", "asio_time_ms", "compio_time_ms", "monoio_time_ms"]
 
     x = np.arange(len(df_nt))
     for i, col in enumerate(columns):
@@ -66,6 +68,8 @@ def run():
 
     condy_results = []
     asio_results = []
+    compio_results = []
+    monoio_results = []
 
     for nt in num_tasks:
         output = run_spawn(spawn_condy, nt)
@@ -76,11 +80,21 @@ def run():
         output = process_output(output)
         asio_results.append(float(output["time_ms"]))
 
+        output = run_spawn(spawn_compio, nt)
+        output = process_output(output)
+        compio_results.append(float(output["time_ms"]))
+
+        output = run_spawn(spawn_monoio, nt)
+        output = process_output(output)
+        monoio_results.append(float(output["time_ms"]))
+
     df_nt = pd.DataFrame(
         {
             "num_tasks": num_tasks,
             "condy_time_ms": condy_results,
             "asio_time_ms": asio_results,
+            "compio_time_ms": compio_results,
+            "monoio_time_ms": monoio_results,
         }
     )
     df_nt.to_csv(data_dir / "spawn_number_of_tasks.csv", index=False)
