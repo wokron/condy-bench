@@ -18,6 +18,13 @@ Install `libaio`:
 sudo apt-get install libaio-dev
 ```
 
+Install Rust toolchain:
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+```
+
 Build the benchmark programs:
 
 ```sh

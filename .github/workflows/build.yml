@@ -20,6 +20,11 @@ jobs:
       - name: Install libaio
         run: sudo apt-get install -y libaio-dev
 
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Configure CMake
         run: |
           cmake -B ${{github.workspace}}/build \
